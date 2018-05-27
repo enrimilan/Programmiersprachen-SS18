@@ -9,6 +9,7 @@ public class Context {
 
     private Stack<Element> dataStack = new Stack<>();
     private CommandStream commandStream;
+    private Register register = new Register();
 
     public Context(CommandStream commandStream) {
         this.commandStream = commandStream;
@@ -20,5 +21,9 @@ public class Context {
 
     public CommandStream getCommandStream() {
         return commandStream;
+    }
+    
+    public Register getRegister(){
+    	return register;
     }
 }
