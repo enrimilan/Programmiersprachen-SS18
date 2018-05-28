@@ -92,13 +92,15 @@ mainLoopMenu s@(State m f p x y l) = do
 
 
 -- Editor Mode
-printLines :: (Eq t, Num t) => State -> t -> IO ()
-printLines (State _ _ _ _ _ _) 0 = return ()
+printLines :: State -> Int -> IO ()
 printLines (State _ [] _ _ _ _) _ = return ()
-printLines (State m (f:fs) p x y l) n = do
+printLines (State m (f:fs) p x y l) n 
+    | n<= 0 = return ()
+    | otherwise = do
         putStrLn ""
         putStr f
-        printLines (State m fs p x y l) (n - 1)
+        w <- screenWidth
+        printLines (State m fs p x y l) (n - 1 - (quot (length f) w))
 
 
 printEditorMode :: State -> IO ()
