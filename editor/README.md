@@ -8,5 +8,5 @@ brew install cabal-install
 and then:
 ```
 cabal update
-cabal install ansi-terminal
+cabal install ansi-terminal terminal-size
 ```
