@@ -1,4 +1,5 @@
 import System.IO
+import Control.Exception
 import System.Console.ANSI
 
 type FileBuffer = String
@@ -46,13 +47,19 @@ printMenu s = do
     putStrLn ""
 
 openFileMenu :: State -> IO ()
-openFileMenu (State m _ _ x y l) = do
+openFileMenu s@(State m _ _ x y l) = do
     putStrLn ""
     putStr "Enter file path: "
     p <- getLine
-    f <- readFile p
-    clearScreenAndSetCursor
-    mainLoop (State m (lines f) p x y l)
+    --f <- readFile p
+    fileOrException <- (try $ readFile p) :: IO (Either IOException String)
+    case fileOrException of
+         Left exception -> do
+            putStrLn "File could not be read!"
+            openFileMenu s
+         Right content -> do
+            clearScreenAndSetCursor
+            mainLoop (State m (lines content) p x y l)
 
 mainLoopMenu :: State -> IO ()
 mainLoopMenu s@(State m f p x y l) = do
