@@ -1,6 +1,10 @@
 package at.ac.tuwien.ps.operator;
 
 import at.ac.tuwien.ps.Context;
+import at.ac.tuwien.ps.element.Element;
+import at.ac.tuwien.ps.stream.CommandStream;
+
+import java.util.Stack;
 
 /**
  * An argument (which is a list) is taken from the data stack, and the list contents (without parentheses) are
@@ -11,7 +15,10 @@ public class ApplyLaterOperator implements Operator {
 
     @Override
     public void execute(Context context) {
-        //TODO
+        Stack<Element> stack = context.getDataStack();
+        CommandStream commandStream = context.getCommandStream();
+        Element list = stack.pop();
+        commandStream.writeToEnd(list);
     }
 
 }
