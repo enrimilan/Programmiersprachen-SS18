@@ -61,7 +61,7 @@ public class ParsingTools {
         if(Character.isDigit(content.charAt(0))) {
             int i = 0;
             StringBuilder integer = new StringBuilder();
-            while(Character.isDigit(content.charAt(i))) {
+            while(i<content.length() && Character.isDigit(content.charAt(i))) {
                 integer.append(content.charAt(i));
                 i++;
             }
