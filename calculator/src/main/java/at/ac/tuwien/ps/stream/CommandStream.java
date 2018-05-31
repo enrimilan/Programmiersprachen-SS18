@@ -35,6 +35,13 @@ public class CommandStream {
         }
     }
 
+    public void writeToEnd(Element element) {
+        if(element.getElementType() == ElementType.LIST) {
+            String value = element.getValue();
+            content = content + value.substring(1, value.length() - 1);
+        }
+    }
+
     public boolean hasNext() {
         return !content.isEmpty();
     }
