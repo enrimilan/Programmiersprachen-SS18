@@ -13,9 +13,13 @@ public class NegationOperator implements Operator {
 
     @Override
     public void execute(Context context) {
+        Stack<Element> stack = context.getDataStack();
+        if(stack.size() < 1)
+            throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> Stack needs to contain at least 1 element but has " + stack.size());
+
     	IntegerCheckOperator checkInt = new IntegerCheckOperator();
     	checkInt.execute(context);
-        Stack<Element> stack = context.getDataStack();
+
         Element check = stack.pop();
         if(check.parseToInt() == 0)
         	throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> argument is not an integer.");
