@@ -49,4 +49,8 @@ public class CommandStream {
     public String getContent() {
         return content;
     }
+
+    public void clear() {
+        content = "";
+    }
 }
