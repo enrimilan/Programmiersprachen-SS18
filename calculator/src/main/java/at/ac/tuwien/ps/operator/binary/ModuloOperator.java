@@ -19,7 +19,7 @@ public class ModuloOperator extends BinaryOperator {
     	Stack<Element> stack = context.getDataStack();
     	if(pair.y == 0)
     		throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> Second argument is 0");
-    	int result = pair.x / pair.y;
+    	int result = pair.x % pair.y;
     	stack.push(new Element(String.valueOf(result), ElementType.INTEGER));
     }
 
