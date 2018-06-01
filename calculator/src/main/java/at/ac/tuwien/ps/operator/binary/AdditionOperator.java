@@ -4,7 +4,6 @@ import at.ac.tuwien.ps.Context;
 import at.ac.tuwien.ps.Pair;
 import at.ac.tuwien.ps.element.Element;
 import at.ac.tuwien.ps.element.ElementType;
-import at.ac.tuwien.ps.operator.OperatorException;
 
 import java.util.Stack;
 
