@@ -4,6 +4,7 @@ package at.ac.tuwien.ps;
 import at.ac.tuwien.ps.element.Element;
 import at.ac.tuwien.ps.element.ElementType;
 import at.ac.tuwien.ps.operator.Operator;
+import at.ac.tuwien.ps.operator.OperatorException;
 import at.ac.tuwien.ps.parsing.ParsingTools;
 import at.ac.tuwien.ps.register.NormalRegisterContent;
 import at.ac.tuwien.ps.register.Register;
@@ -49,17 +50,24 @@ public class Calculator {
 
         if(verbose) System.out.println("--> " + stack + " ^ " + commandStream.getContent());
         Element element;
-        while(commandStream.hasNext()) {
-            element = commandStream.readNext();
-            if(element.getElementType() == ElementType.OPERATOR) {
-                Operator operator = parsingTools.match(element.getValue());
-                operator.execute(context);
+
+        try {
+            while(commandStream.hasNext()) {
+                element = commandStream.readNext();
+                if(element.getElementType() == ElementType.OPERATOR) {
+                    Operator operator = parsingTools.match(element.getValue());
+                    operator.execute(context);
+                }
+                else {
+                    stack.push(element);
+                }
+                if (verbose) System.out.println("--> " + stack + " ^ " + commandStream.getContent());
             }
-            else {
-                stack.push(element);
-            }
-            if (verbose) System.out.println("--> " + stack + " ^ " + commandStream.getContent());
         }
+        catch (OperatorException e) {
+            System.out.println(e.getMessage());
+        }
+
     }
 
     public static void main( String[] args ) {
