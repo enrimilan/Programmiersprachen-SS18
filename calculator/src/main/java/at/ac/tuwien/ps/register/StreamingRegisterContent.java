@@ -22,7 +22,7 @@ public class StreamingRegisterContent implements RegisterContent {
             return new Element(Programs.FACTORIAL, ElementType.LIST);
         }
         if(line.equals("prime")){
-            //TODO
+            return new Element(Programs.PRIME, ElementType.LIST);
         }
         return parsingTools.parseElement(line);
     }
