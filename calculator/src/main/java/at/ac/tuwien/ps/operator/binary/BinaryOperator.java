@@ -22,6 +22,10 @@ public abstract class BinaryOperator implements Operator {
 
 	public Pair<Integer,Integer> checkForIntegers(Context context){
 		Stack<Element> stack = context.getDataStack();
+
+		if(stack.size() < 2)
+			throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> Stack needs to contain at least 2 elements but has " + stack.size());
+
 		
 //		//check if stack size >= 2
 //		StackSizeOperator sizeInt = new StackSizeOperator();
