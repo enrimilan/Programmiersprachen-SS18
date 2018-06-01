@@ -18,8 +18,8 @@ public class LogicalOrOperator extends LogicalBinaryOperator {
     public void execute(Context context) {
     	Pair<Integer,Integer> pair = checkForBooleans(context);
     	Stack<Element> stack = context.getDataStack();
-    	int result = ((pair.x+pair.y)>0) ? 1 : 0;
-    	stack.push(new Element(String.valueOf(result), ElementType.INTEGER));
+    	String result = ((pair.x+pair.y)>0) ? "1" : "0";
+    	stack.push(new Element(result, ElementType.INTEGER));
     }
 
 }
