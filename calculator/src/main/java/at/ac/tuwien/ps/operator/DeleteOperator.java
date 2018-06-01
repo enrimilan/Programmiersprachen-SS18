@@ -13,9 +13,13 @@ public class DeleteOperator implements Operator {
 
     @Override
     public void execute(Context context) {
+        Stack<Element> stack = context.getDataStack();
+        if(stack.size() < 2)
+            throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> Stack needs to contain at least 2 elements but has " + stack.size());
+
     	IntegerCheckOperator checkInt = new IntegerCheckOperator();
     	checkInt.execute(context);
-        Stack<Element> stack = context.getDataStack();
+
         Element check = stack.pop();
         if(check.parseToInt() == 0)
         	throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> n is not an integer.");
@@ -23,8 +27,11 @@ public class DeleteOperator implements Operator {
         Element top = stack.peek();
         int topValue = top.parseToInt();
         
-        if(topValue < 0)
+        if(topValue < 1)
         	throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> n is not a positive integer.");
+
+        if(topValue >= stack.size())
+            throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> index is out of range.");
         
         int index = stack.size() - topValue - 1;
         stack.remove(index);
