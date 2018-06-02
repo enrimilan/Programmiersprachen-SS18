@@ -12,11 +12,6 @@ public class Element {
         this.value = value;
         this.elementType = elementType;
     }
-    
-    public Element(RegisterElement element){
-    	this.value = element.getValue();
-    	this.elementType = ElementType.valueOf(element.getElementType().name());
-    }
 
     public String getValue() {
         return value;
