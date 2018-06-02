@@ -30,7 +30,8 @@ public class CommandStream {
     public void prependList(Element element) {
         String value = element.getValue();
         String listContent = value.substring(1, value.length() - 1);
-        if(listContent.matches("-?\\d+") && content.length()>0 && Character.isDigit(content.charAt(0))) {
+        String[] elements = listContent.split(" ");
+        if(elements[elements.length-1].matches("-?\\d+") && content.length()>0 && Character.isDigit(content.charAt(0))) {
             listContent = listContent + " ";
         }
         content = listContent  + content;

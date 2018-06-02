@@ -37,6 +37,17 @@ public class ApplyImmediatelyOperatorTest {
         Assert.assertEquals(0, stack.size());
     }
 
+    @Test
+    public void applyImmediatelyTest3() {
+        CommandStream commandStream = new CommandStream("0 1w");
+        Stack<Element> stack = new Stack<>();
+        stack.push(new Element("(1 2)", ElementType.LIST));
+        Context context = new Context(commandStream, stack, new ArrayList<Register>());
+        applyImmediatelyOperator.execute(context);
+        Assert.assertEquals("1 2 0 1w", commandStream.getContent());
+        Assert.assertEquals(0, stack.size());
+    }
+
     @Test(expected = OperatorException.class)
     public void applyImmediatelyEmptyStackTest() {
         Context context = new Context(new CommandStream(""), new Stack<Element>(), new ArrayList<Register>());
