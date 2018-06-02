@@ -8,7 +8,7 @@ import at.ac.tuwien.ps.register.Register;
 import at.ac.tuwien.ps.element.Element;
 
 /**
- * Takes the top element n and the second elementc x from the data stack and writes x to register n. An error is
+ * Takes the top element n and the second element x from the data stack and writes x to register n. An error is
  * reported if n is not an integer between 0 and 31.
  */
 public class WriteRegisterOperator implements Operator {
@@ -16,6 +16,9 @@ public class WriteRegisterOperator implements Operator {
     @Override
     public void execute(Context context) {
     	Stack<Element> stack = context.getDataStack();
+        if(stack.size() < 2)
+            throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> Stack needs to contain at least 2 elements but has " + stack.size());
+
     	List<Register> registers = context.getRegisters();
     	
     	IntegerCheckOperator checkInt = new IntegerCheckOperator();

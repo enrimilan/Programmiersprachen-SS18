@@ -16,6 +16,9 @@ public class ReadRegisterOperator implements Operator {
     @Override
     public void execute(Context context) {
     	Stack<Element> stack = context.getDataStack();
+        if(stack.size() < 1)
+            throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> Stack needs to contain at least 1 element but has " + stack.size());
+
     	List<Register> registers = context.getRegisters();
     	
     	IntegerCheckOperator checkInt = new IntegerCheckOperator();
@@ -29,6 +32,9 @@ public class ReadRegisterOperator implements Operator {
 
         if(topValue >= 0 && topValue <= 31) {
             Element element = registers.get(topValue).readElement();
+            if(element == null)
+                throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> can't read anything from an empty register.");
+
             stack.push(element);
         }
         else{
