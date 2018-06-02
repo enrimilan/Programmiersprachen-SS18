@@ -16,13 +16,24 @@ public class ApplyImmediatelyOperatorTest {
     private ApplyImmediatelyOperator applyImmediatelyOperator = new ApplyImmediatelyOperator();
 
     @Test
-    public void applyImmediatelyTest() {
+    public void applyImmediatelyTest1() {
         CommandStream commandStream = new CommandStream("(1 2*)");
         Stack<Element> stack = new Stack<>();
         stack.push(new Element("(1 1+)", ElementType.LIST));
         Context context = new Context(commandStream, stack, new ArrayList<Register>());
         applyImmediatelyOperator.execute(context);
         Assert.assertEquals("1 1+(1 2*)", commandStream.getContent());
+        Assert.assertEquals(0, stack.size());
+    }
+
+    @Test
+    public void applyImmediatelyTest2() {
+        CommandStream commandStream = new CommandStream("0 1w");
+        Stack<Element> stack = new Stack<>();
+        stack.push(new Element("(8)", ElementType.LIST));
+        Context context = new Context(commandStream, stack, new ArrayList<Register>());
+        applyImmediatelyOperator.execute(context);
+        Assert.assertEquals("8 0 1w", commandStream.getContent());
         Assert.assertEquals(0, stack.size());
     }
 

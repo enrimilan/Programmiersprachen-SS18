@@ -1,7 +1,6 @@
 package at.ac.tuwien.ps.stream;
 
 import at.ac.tuwien.ps.element.Element;
-import at.ac.tuwien.ps.element.ElementType;
 import at.ac.tuwien.ps.parsing.ParsingTools;
 
 public class CommandStream {
@@ -28,18 +27,22 @@ public class CommandStream {
         return element;
     }
 
-    public void write(Element element) {
-        if(element.getElementType() == ElementType.LIST) {
-            String value = element.getValue();
-            content = value.substring(1, value.length() - 1) + content;
+    public void prependList(Element element) {
+        String value = element.getValue();
+        String listContent = value.substring(1, value.length() - 1);
+        if(listContent.matches("-?\\d+") && content.length()>0 && Character.isDigit(content.charAt(0))) {
+            listContent = listContent + " ";
         }
+        content = listContent  + content;
     }
 
-    public void writeToEnd(Element element) {
-        if(element.getElementType() == ElementType.LIST) {
-            String value = element.getValue();
-            content = content + value.substring(1, value.length() - 1);
+    public void appendList(Element element) {
+        String value = element.getValue();
+        String listContent = value.substring(1, value.length() - 1);
+        if(listContent.matches("-?\\d+") && content.length()>0 && Character.isDigit(content.charAt(0))) {
+            listContent = " " + listContent;
         }
+        content = content + listContent;
     }
 
     public boolean hasNext() {

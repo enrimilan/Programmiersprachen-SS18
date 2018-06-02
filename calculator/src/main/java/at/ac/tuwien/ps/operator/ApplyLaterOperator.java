@@ -25,7 +25,7 @@ public class ApplyLaterOperator implements Operator {
         if(list.getElementType() != ElementType.LIST)
             throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> Element is not a list.");
 
-        commandStream.writeToEnd(list);
+        commandStream.appendList(list);
     }
 
 }

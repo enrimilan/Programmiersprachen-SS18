@@ -24,7 +24,7 @@ public class ApplyImmediatelyOperator implements Operator {
         if(list.getElementType() != ElementType.LIST)
             throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> Element is not a list.");
 
-        commandStream.write(list);
+        commandStream.prependList(list);
     }
 
 }

@@ -16,13 +16,24 @@ public class ApplyLaterOperatorTest {
     private ApplyLaterOperator applyLaterOperator = new ApplyLaterOperator();
 
     @Test
-    public void applyLaterTest() {
+    public void applyLaterTest1() {
         CommandStream commandStream = new CommandStream("(1 2*)");
         Stack<Element> stack = new Stack<>();
         stack.push(new Element("(1 1+)", ElementType.LIST));
         Context context = new Context(commandStream, stack, new ArrayList<Register>());
         applyLaterOperator.execute(context);
         Assert.assertEquals("(1 2*)1 1+", commandStream.getContent());
+        Assert.assertEquals(0, stack.size());
+    }
+
+    @Test
+    public void applyLaterTest2() {
+        CommandStream commandStream = new CommandStream("0");
+        Stack<Element> stack = new Stack<>();
+        stack.push(new Element("(8)", ElementType.LIST));
+        Context context = new Context(commandStream, stack, new ArrayList<Register>());
+        applyLaterOperator.execute(context);
+        Assert.assertEquals("0 8", commandStream.getContent());
         Assert.assertEquals(0, stack.size());
     }
 
