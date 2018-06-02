@@ -15,6 +15,9 @@ public class IntegerCheckOperator implements Operator {
     @Override
     public void execute(Context context) {
     	Stack<Element> stack = context.getDataStack();
+		if(stack.size() < 1)
+			throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> Stack needs to contain at least 1 element but has " + stack.size());
+
     	Element topElement = stack.peek();
     	if(topElement.getElementType() == ElementType.INTEGER){
     		stack.push(new Element(String.valueOf(1), ElementType.INTEGER));
