@@ -24,7 +24,7 @@ public class ReadRegisterOperatorTest {
 
     @Before
     public void setUp() {
-        ByteArrayInputStream in = new ByteArrayInputStream("(1 1+)\n".getBytes());
+        ByteArrayInputStream in = new ByteArrayInputStream("1 1+\n".getBytes());
         System.setIn(in);
 
         // command stream

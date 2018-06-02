@@ -24,7 +24,7 @@ public class StreamingRegisterContent implements RegisterContent {
         if(line.equals("prime")){
             return new Element(Programs.PRIME, ElementType.LIST);
         }
-        return parsingTools.parseElement(line);
+        return parsingTools.parseElement("("+line+")");
     }
 
     @Override
