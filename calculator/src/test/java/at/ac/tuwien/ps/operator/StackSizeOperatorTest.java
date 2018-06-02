@@ -27,7 +27,7 @@ public class StackSizeOperatorTest {
     }
 
     @Test
-    public void deleteTest2() {
+    public void stackSizeTest2() {
         Stack<Element> stack = new Stack<>();
         Context context = new Context(new CommandStream(""), stack, new ArrayList<Register>());
         stackSizeOperator.execute(context);
