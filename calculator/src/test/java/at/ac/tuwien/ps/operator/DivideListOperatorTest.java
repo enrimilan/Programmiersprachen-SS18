@@ -86,4 +86,10 @@ public class DivideListOperatorTest {
         divideListOperator.execute(context);
     }
 
+    @Test(expected = OperatorException.class)
+    public void divideListEmptyStackTest() {
+        Context context = new Context(new CommandStream(""), new Stack<Element>(), new ArrayList<Register>());
+        divideListOperator.execute(context);
+    }
+
 }
