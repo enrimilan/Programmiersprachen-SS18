@@ -23,7 +23,7 @@ public class DivideListOperator implements Operator {
             throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> Stack needs to contain at least 1 element but has " + stack.size());
 
         Element element = stack.pop();
-        if(element.getElementType() == ElementType.INTEGER)
+        if(element.getElementType() != ElementType.LIST)
             throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> The element is not a list");
 
         String list = element.getValue();
