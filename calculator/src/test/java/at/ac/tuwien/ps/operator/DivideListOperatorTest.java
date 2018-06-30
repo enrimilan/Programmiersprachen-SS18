@@ -1,9 +1,8 @@
-package at.ac.tuwien.ps.operator.binary;
+package at.ac.tuwien.ps.operator;
 
 import at.ac.tuwien.ps.Context;
 import at.ac.tuwien.ps.element.Element;
 import at.ac.tuwien.ps.element.ElementType;
-import at.ac.tuwien.ps.operator.DivideListOperator;
 import at.ac.tuwien.ps.register.Register;
 import at.ac.tuwien.ps.stream.CommandStream;
 import org.junit.Assert;
