@@ -5,7 +5,6 @@ import at.ac.tuwien.ps.element.Element;
 import at.ac.tuwien.ps.element.ElementType;
 import at.ac.tuwien.ps.parsing.ParsingTools;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
@@ -32,20 +31,7 @@ public class DivideListOperator implements Operator {
             throw new OperatorException("Error at " + this.getClass().getSimpleName() + " -> The element is an empty list");
 
         String listContent = list.substring(1, list.length() - 1);
-
-        List<Element> elements = new ArrayList<>();
-
-        String nextContent = listContent;
-
-        while(!nextContent.isEmpty()){
-            if(nextContent.charAt(0) == ' ') {
-                nextContent = nextContent.substring(1);
-            }
-            Element el = parsingTools.parseElement(nextContent);
-            elements.add(el);
-            nextContent = nextContent.substring(el.getValue().length());
-        }
-
+        List<Element> elements = parsingTools.parseElements(listContent);
         Element head = elements.get(elements.size()-1);
 
         int headIndex = listContent.length() - head.getValue().length();
