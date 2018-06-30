@@ -5,6 +5,8 @@ import at.ac.tuwien.ps.element.Element;
 import at.ac.tuwien.ps.element.ElementType;
 import at.ac.tuwien.ps.parsing.ParsingTools;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 /**
@@ -31,15 +33,24 @@ public class DivideListOperator implements Operator {
 
         String listContent = list.substring(1, list.length() - 1);
 
-        Element head = parsingTools.parseElement(listContent);
+        List<Element> elements = new ArrayList<>();
 
-        listContent = listContent.substring(head.getValue().length());
+        String nextContent = listContent;
 
-        if(listContent.startsWith(" ")) {
-            listContent = listContent.substring(1);
+        while(!nextContent.isEmpty()){
+            if(nextContent.charAt(0) == ' ') {
+                nextContent = nextContent.substring(1);
+            }
+            Element el = parsingTools.parseElement(nextContent);
+            elements.add(el);
+            nextContent = nextContent.substring(el.getValue().length());
         }
 
-        Element tail = new Element("("+listContent+")", ElementType.LIST);
+        Element head = elements.get(elements.size()-1);
+
+        int headIndex = listContent.length() - head.getValue().length();
+        String tailContent = listContent.substring(0, headIndex);
+        Element tail = new Element("("+tailContent+")", ElementType.LIST);
 
         stack.push(tail);
         stack.push(head);

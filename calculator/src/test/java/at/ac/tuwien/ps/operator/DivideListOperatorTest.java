@@ -22,8 +22,8 @@ public class DivideListOperatorTest {
         Context context = new Context(new CommandStream(""), stack, new ArrayList<Register>());
         divideListOperator.execute(context);
         Assert.assertEquals(2, stack.size());
-        Assert.assertEquals(new Element("1", ElementType.INTEGER), stack.get(1));
-        Assert.assertEquals(new Element("(1+)", ElementType.LIST), stack.get(0));
+        Assert.assertEquals(new Element("+", ElementType.OPERATOR), stack.get(1));
+        Assert.assertEquals(new Element("(1 1)", ElementType.LIST), stack.get(0));
     }
 
     @Test
@@ -44,8 +44,8 @@ public class DivideListOperatorTest {
         Context context = new Context(new CommandStream(""), stack, new ArrayList<Register>());
         divideListOperator.execute(context);
         Assert.assertEquals(2, stack.size());
-        Assert.assertEquals(new Element("1", ElementType.INTEGER), stack.get(1));
-        Assert.assertEquals(new Element("(+)", ElementType.LIST), stack.get(0));
+        Assert.assertEquals(new Element("+", ElementType.OPERATOR), stack.get(1));
+        Assert.assertEquals(new Element("(1)", ElementType.LIST), stack.get(0));
     }
 
     @Test
@@ -55,8 +55,35 @@ public class DivideListOperatorTest {
         Context context = new Context(new CommandStream(""), stack, new ArrayList<Register>());
         divideListOperator.execute(context);
         Assert.assertEquals(2, stack.size());
-        Assert.assertEquals(new Element("(1 1+)", ElementType.LIST), stack.get(1));
-        Assert.assertEquals(new Element("((2 2*))", ElementType.LIST), stack.get(0));
+        Assert.assertEquals(new Element("(2 2*)", ElementType.LIST), stack.get(1));
+        Assert.assertEquals(new Element("((1 1+))", ElementType.LIST), stack.get(0));
+    }
+
+    @Test
+    public void divideListTest5() {
+        Stack<Element> stack = new Stack<>();
+        stack.push(new Element("(1 1+(2 2*))", ElementType.LIST));
+        Context context = new Context(new CommandStream(""), stack, new ArrayList<Register>());
+        divideListOperator.execute(context);
+        Assert.assertEquals(2, stack.size());
+        Assert.assertEquals(new Element("(2 2*)", ElementType.LIST), stack.get(1));
+        Assert.assertEquals(new Element("(1 1+)", ElementType.LIST), stack.get(0));
+    }
+
+    @Test(expected = OperatorException.class)
+    public void divideListEmptyListTest() {
+        Stack<Element> stack = new Stack<>();
+        stack.push(new Element("()", ElementType.LIST));
+        Context context = new Context(new CommandStream(""), stack, new ArrayList<Register>());
+        divideListOperator.execute(context);
+    }
+
+    @Test(expected = OperatorException.class)
+    public void divideListNoListTest() {
+        Stack<Element> stack = new Stack<>();
+        stack.push(new Element("1", ElementType.INTEGER));
+        Context context = new Context(new CommandStream(""), stack, new ArrayList<Register>());
+        divideListOperator.execute(context);
     }
 
 }
