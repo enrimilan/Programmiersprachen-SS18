@@ -226,8 +226,9 @@ def matches(pattern1, pattern2, variables):
     if not is_full_pattern(pattern2, variables):
         return False
     print_debug('Matching ' + str(pattern1) + ' # ' + str(pattern2))
-    if len(pattern_to_string(pattern2, variables)) == 0 and len(pattern1) >= 2:  # +x*x does not match ''
-        return False
+    #if len(pattern_to_string(pattern2, variables)) == 0 and len(pattern1) >= 2:  # +x*x does not match ''
+    #    return False
+    # TODO +x+y*z does not match 'a '
     """if len(pattern2) == 0:
         if len(pattern1) > 0:
             if get_type(pattern1[0]) == '*':  # Only *z matches []
@@ -258,6 +259,8 @@ def matches(pattern1, pattern2, variables):
     if m > n:
         if len(pattern2) > n:  # If m > n and d is specified
             value_d = get_value(pattern2[n], new_variables)
+            if value_d == '':
+                return False
             d = value_d.split(' ')
             for i in range(n, m):  # From here similar to first case
                 value1 = get_value(pattern1[i], new_variables)
