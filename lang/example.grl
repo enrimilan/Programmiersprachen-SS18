@@ -1,0 +1,5 @@
+main-:findFiles-(*files):showFiles(*files)-.
+showFiles(+x*x)-:showFile(+x)-:showFiles(*x)-.
+showFiles()-.
+findFiles-(*f):$(ls \*\.pdf)()-(*f)(*x).
+showFile(+f)-:$(open+f)()-(*a)(+b).

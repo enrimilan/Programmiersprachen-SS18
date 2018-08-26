@@ -1,0 +1,5 @@
+sum(+x+y*z)-:plus(+x)(+y)-(+s):sum(+s*z)-.
+sum(+x)-:print(+x)-.
+sum()-.
+plus(+a)(+b)-(+s):$(echo "+a \++b "|bc)()-(+s)(*e).
+print(*s)-:$(echo *s > /dev/tty)()-(*x)(*y).
