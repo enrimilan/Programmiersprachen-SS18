@@ -73,6 +73,20 @@ openFileMenu s@(State m _ _ x y l) = do
             clearScreenAndSetCursor
             mainLoop (State m (lines content) p x y l)
 
+saveFileMenu :: State -> IO ()
+saveFileMenu s@(State m f p x y l) = do
+    putStrLn ""
+    putStr ("Save at path: ")
+    path <- getLine
+    eitherException <- (try $ writeFile path (concat f)) :: IO (Either IOException ())
+    case eitherException of
+        Left exception -> do
+            putStrLn "File could not be saved!"
+            saveFileMenu s
+        Right _ -> do
+            clearScreenAndSetCursor
+            mainLoop (State m f path x y l)
+
 mainLoopMenu :: State -> IO ()
 mainLoopMenu s@(State m f p x y l) = do
     resetFont
@@ -83,7 +97,7 @@ mainLoopMenu s@(State m f p x y l) = do
     c <- getChar
     case c of
         '1' -> openFileMenu s
-        '2' -> mainLoop s
+        '2' -> saveFileMenu s
         '3' -> mainLoop (State EditMode f p x y l)
         '4' -> do
             putStrLn " Exiting!"
@@ -115,6 +129,29 @@ printEditorMode (State m f p x y l) = do
             dropped = (drop l f)
 
 
+insertChar :: State -> [Char] -> State
+insertChar s@(State m f p x y l) c = State m new p x (y + 1) l
+    where
+        new = replaceAtIndex x [newLine] f
+        newLine = insertAtIndex y c (f !! x)
+
+insertEnter :: State -> State
+insertEnter s@(State m f p x y l) = State m new p (x + 1) 0 l
+    where
+        new = replaceAtIndex x [xs,ys] f
+        (xs,ys) = splitAt y (f !! x)
+
+backspace :: State -> State
+backspace s@(State m f p x y l)
+    | y == 0 && x == 0 = s
+    | y == 0 = State m newCombined p (x - 1) (length (f !! (x - 1))) l
+    | otherwise = State m new p x (y - 1) l
+        where
+            newCombined = removeAtIndex x (replaceAtIndex (x - 1) [newLineCombined] f)
+            newLineCombined = (f !! (x - 1)) ++ (f !! x)
+            new = replaceAtIndex x [newLine] f
+            newLine = removeAtIndex (y - 1) (f !! x)
+
 mainLoopEdit :: State -> IO ()
 mainLoopEdit s@(State m f p x y l) = do
     resetFont
@@ -138,7 +175,9 @@ mainLoopEdit s@(State m f p x y l) = do
                     | otherwise = l
         "\ESC[C" -> mainLoop (State EditMode f p x (ifBetween (y + 1) 0 w y) l) -- right
         "\ESC[D" -> mainLoop (State EditMode f p x (ifBetween (y - 1) 0 w y) l) -- left
-        _ -> mainLoopEdit s
+        "\n" -> mainLoopEdit (insertEnter s)
+        "\DEL" -> mainLoopEdit (backspace s)
+        _ -> mainLoopEdit (insertChar s c)
 
 
 
@@ -160,3 +199,19 @@ getKey = reverse <$> getKey' ""
             char <- getChar
             more <- hReady stdin
             (if more then getKey' else return) (char:chars)
+
+
+-- Util Functions
+
+replaceAtIndex :: Int -> [a] -> [a] -> [a]
+replaceAtIndex index replacement list
+    | length list <= index = list
+    | otherwise = x ++ replacement ++ ys
+        where (x,_:ys) = splitAt index list
+
+insertAtIndex :: Int -> [a] -> [a] -> [a]
+insertAtIndex index insert list = xs ++ insert ++ ys
+    where (xs,ys) = splitAt index list
+
+removeAtIndex :: Int -> [a] -> [a]
+removeAtIndex index list = replaceAtIndex index [] list
