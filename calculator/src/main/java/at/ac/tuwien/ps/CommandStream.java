@@ -20,13 +20,13 @@ public class CommandStream {
      *  @return the next element
      */
     public Element readNext() {
-
-        if(content.startsWith(" ")) {
-            content = content.substring(1);
+        int consumedLength = 0;
+        if(content.charAt(0) == ' ') {
+            consumedLength++;
         }
-
         Element element = parsingTools.parseElement(content);
-        content = content.substring(element.getValue().length());
+        consumedLength = consumedLength + element.getValue().length();
+        content = content.substring(consumedLength);
         return element;
     }
 
