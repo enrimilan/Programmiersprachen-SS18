@@ -46,7 +46,7 @@ public class Calculator {
         CommandStream commandStream = context.getCommandStream();
         Stack<Element> stack = context.getDataStack();
 
-        if(verbose) System.out.println("--> " + stack + " ^ " + commandStream.getContent());
+        if(verbose) System.out.println("--> " + stack.toString().replaceAll("\n", "\\\\n") + " ^ " + commandStream.getContent().replaceAll("\n", "\\\\n"));
         Element element;
 
         try {
@@ -59,7 +59,7 @@ public class Calculator {
                 else {
                     stack.push(element);
                 }
-                if (verbose) System.out.println("--> " + stack + " ^ " + commandStream.getContent());
+                if (verbose) System.out.println("--> " + stack.toString().replaceAll("\n", "\\\\n") + " ^ " + commandStream.getContent().replaceAll("\n", "\\\\n"));
             }
         }
         catch (OperatorException e) {
