@@ -33,7 +33,7 @@ public class StreamingRegisterContent implements RegisterContent {
         if(element.getElementType() == ElementType.LIST) {
             output = output.substring(1, output.length() - 1);
         }
-        System.out.println(output);
+        System.out.print(output);
     }
 
 }
