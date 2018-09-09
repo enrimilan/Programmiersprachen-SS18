@@ -5,6 +5,9 @@ import at.ac.tuwien.ps.element.ElementType;
 import at.ac.tuwien.ps.operator.*;
 import at.ac.tuwien.ps.operator.binary.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ParsingTools {
 
     public Operator match(String sign) {
@@ -61,7 +64,7 @@ public class ParsingTools {
         if(Character.isDigit(content.charAt(0))) {
             int i = 0;
             StringBuilder integer = new StringBuilder();
-            while(Character.isDigit(content.charAt(i))) {
+            while(i<content.length() && Character.isDigit(content.charAt(i))) {
                 integer.append(content.charAt(i));
                 i++;
             }
@@ -71,5 +74,19 @@ public class ParsingTools {
         // last possibility: operation
         String operation = String.valueOf(content.charAt(0));
         return new Element(operation, ElementType.OPERATOR);
+    }
+
+    public List<Element> parseElements(String content) {
+        String nextContent = content;
+        List<Element> elements = new ArrayList<>();
+        while(!nextContent.isEmpty()){
+            if(nextContent.charAt(0) == ' ') {
+                nextContent = nextContent.substring(1);
+            }
+            Element el = parseElement(nextContent);
+            elements.add(el);
+            nextContent = nextContent.substring(el.getValue().length());
+        }
+        return elements;
     }
 }
