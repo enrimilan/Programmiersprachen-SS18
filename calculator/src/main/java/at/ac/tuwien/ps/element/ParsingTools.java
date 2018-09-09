@@ -40,6 +40,23 @@ public class ParsingTools {
     }
 
     public Element parseElement(String content) {
+        String nextContent = content;
+
+        if(nextContent.charAt(0) == ' ') {
+            // empty space means the next element will be a number
+            nextContent = nextContent.substring(1);
+            StringBuilder integer = new StringBuilder();
+            if(nextContent.charAt(0) == '-') {
+                integer.append("-");
+                nextContent = nextContent.substring(1);
+            }
+            int i = 0;
+            while(i<nextContent.length() && Character.isDigit(nextContent.charAt(i))) {
+                integer.append(nextContent.charAt(i));
+                i++;
+            }
+            return new Element(integer.toString(), ElementType.INTEGER);
+        }
 
         // try to parse a list
         if(content.startsWith("(")) {
@@ -58,7 +75,20 @@ public class ParsingTools {
             }
         }
 
-        // try to parse a number
+        // try to parse a negative number
+        if(nextContent.length() >=2 && nextContent.charAt(0) == '-' && Character.isDigit(nextContent.charAt(1))) {
+            StringBuilder integer = new StringBuilder();
+            integer.append("-");
+            nextContent = nextContent.substring(1);
+            int i = 0;
+            while(i<nextContent.length() && Character.isDigit(nextContent.charAt(i))) {
+                integer.append(nextContent.charAt(i));
+                i++;
+            }
+            return new Element(integer.toString(), ElementType.INTEGER);
+        }
+
+        // try to parse a positive number
         if(Character.isDigit(content.charAt(0))) {
             int i = 0;
             StringBuilder integer = new StringBuilder();
@@ -78,12 +108,14 @@ public class ParsingTools {
         String nextContent = content;
         List<Element> elements = new ArrayList<>();
         while(!nextContent.isEmpty()){
+            int consumedLength = 0;
             if(nextContent.charAt(0) == ' ') {
-                nextContent = nextContent.substring(1);
+                consumedLength++;
             }
             Element el = parseElement(nextContent);
+            consumedLength = consumedLength + el.getValue().length();
             elements.add(el);
-            nextContent = nextContent.substring(el.getValue().length());
+            nextContent = nextContent.substring(consumedLength);
         }
         return elements;
     }
