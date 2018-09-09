@@ -215,3 +215,129 @@ insertAtIndex index insert list = xs ++ insert ++ ys
 
 removeAtIndex :: Int -> [a] -> [a]
 removeAtIndex index list = replaceAtIndex index [] list
+
+
+-- Parser (parts from Fortgeschrittene Funktionale Programmierung)
+
+type Parse a b = [a] -> [(b,[a])]
+
+data Token = Lit String | Plus String | Star String deriving (Eq,Ord,Show)
+data Pattern = Pat [Token] deriving (Eq,Ord,Show)
+data Name = Nam String deriving (Eq,Ord,Show)
+data Atom = Ato Name [Pattern] [Pattern] deriving (Eq,Ord,Show)
+data Goal = AtomGoal Atom | EqGoal Pattern Pattern | ShellGoal Pattern Pattern Pattern Pattern deriving (Eq,Ord,Show)
+data Body = Bod [Goal] deriving (Eq,Ord,Show)
+data Head = Hea Atom deriving (Eq,Ord,Show)
+data Rule = Rul Head Body deriving (Eq,Ord,Show)
+data Programm = Pro [Rule] deriving (Eq,Ord,Show)
+
+specialChars = ['\\', ':', '.', '=', '$', '-', '(', ')', '+', '*']
+special c = elem c specialChars
+notSpecial c = not (special c)
+
+none :: Parse a b
+none _ = []
+
+succeed :: b -> Parse a b
+succeed val inp = [(val,inp)]
+
+token :: Char -> Parse Char [Char]
+token t = spots (\c escaped -> c == t && not escaped)
+
+spots :: (Char -> Bool -> Bool) -> Parse Char [Char]
+spots p "\\" = []
+spots p ('\\':x:xs)
+    | notSpecial x = []  -- Escaped and not a special char
+    | p x True = [('\\':[x],xs)]  -- Escaped and a special char and p returns true
+    | otherwise = []
+spots p (x:xs)
+    | p x False = [([x],xs)]
+    | otherwise = []
+spots p [] = []
+
+alt :: Parse a b -> Parse a b -> Parse a b
+alt p1 p2 inp = p1 inp ++ p2 inp
+
+infixr 5 >*>
+(>*>) :: Parse a b -> Parse a c -> Parse a (b,c)
+(>*>) p1 p2 inp
+    = [((y,z),rem2) | (y,rem1) <- p1 inp, (z,rem2) <- p2 rem1 ]
+
+build :: Parse a b -> (b -> c) -> Parse a c
+build p f inp = [(f x, rem)|(x,rem) <- p inp]
+
+neList :: Parse a b -> Parse a [b]
+neList p = (p `build` (:[])) `alt` ((p >*> list p) `build` (uncurry (:)))
+
+list :: Parse a b -> Parse a [b]
+list p = (succeed []) `alt` ((p >*> list p) `build` (uncurry (:)))
+
+optional :: Parse a b -> Parse a [b]
+optional p = (succeed []) `alt` (p  `build` (:[]))
+
+
+listOfNotSpecialButNotSpaceOrEscaped = neList (spots (\c escaped -> notSpecial c && c /= ' ' || escaped))
+
+litToken = listOfNotSpecialButNotSpaceOrEscaped `build` makeToken
+    where makeToken nameList = Lit (concat nameList)
+
+plusStarToken ps t = (token ps >*> listOfNotSpecialButNotSpaceOrEscaped) `build` makeToken
+    where makeToken (_,nameList) = t (concat nameList)
+
+plusToken = plusStarToken '+' Plus
+starToken = plusStarToken '*' Star
+
+openBracket = token '('
+closeBracket = token ')'
+
+pattern = 
+    (openBracket >*> closeBracket) `build` makeEmptyPattern
+    `alt`
+    ((openBracket >*>
+    list (litToken `alt` plusToken) >*>
+    optional starToken >*>
+    closeBracket) `build` makePattern)
+    where
+        makeEmptyPattern _ = Pat []
+        makePattern (_,(a,(b,_))) = Pat (a ++ b)
+
+name = listOfNotSpecialButNotSpaceOrEscaped `build` (Nam . concat)
+
+atom =
+    (name >*>
+    list pattern >*>
+    token '-' >*>
+    list pattern) `build` makeAtom
+    where makeAtom (name,(p1,(_,p2))) = Ato name p1 p2
+
+goal =
+    (atom `build` AtomGoal)
+    `alt`
+    ((pattern >*>
+    token '=' >*>
+    pattern) `build` makeEqGoal)
+    `alt`
+    ((token '$' >*>
+    pattern >*>
+    pattern >*>
+    token '-' >*>
+    pattern >*>
+    pattern) `build` makeShellGoal)
+    where
+        makeEqGoal (p1, (_, p2)) = EqGoal p1 p2
+        makeShellGoal (_, (p1, (p2, (_, (p3, p4))))) = ShellGoal p1 p2 p3 p4
+
+body =
+    (list (token ':' >*> goal)) `build` makeBody
+    where makeBody goals = Bod (map snd goals)
+
+headp = atom `build` Hea
+
+rule =
+    (headp >*>
+    body >*>
+    token '.') `build` makeRule
+    where makeRule (h, (b, _)) = Rul h b
+
+program = list rule `build` Pro  -- todo not needed?
+
