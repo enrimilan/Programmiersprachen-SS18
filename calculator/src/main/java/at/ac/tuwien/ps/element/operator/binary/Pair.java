@@ -1,4 +1,4 @@
-package at.ac.tuwien.ps;
+package at.ac.tuwien.ps.element.operator.binary;
 
 public class Pair<X, Y> {
 	public final X x; 

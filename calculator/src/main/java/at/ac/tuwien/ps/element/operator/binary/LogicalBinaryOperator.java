@@ -1,7 +1,6 @@
 package at.ac.tuwien.ps.element.operator.binary;
 
 import at.ac.tuwien.ps.Context;
-import at.ac.tuwien.ps.Pair;
 import at.ac.tuwien.ps.element.operator.OperatorException;
 
 /**

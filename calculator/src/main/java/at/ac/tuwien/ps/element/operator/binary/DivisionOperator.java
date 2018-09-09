@@ -3,7 +3,6 @@ package at.ac.tuwien.ps.element.operator.binary;
 import java.util.Stack;
 
 import at.ac.tuwien.ps.Context;
-import at.ac.tuwien.ps.Pair;
 import at.ac.tuwien.ps.element.Element;
 import at.ac.tuwien.ps.element.ElementType;
 import at.ac.tuwien.ps.element.operator.OperatorException;
