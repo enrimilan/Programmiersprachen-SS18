@@ -66,7 +66,7 @@ public class WriteRegisterOperatorTest {
         stack.push(new Element("1", ElementType.INTEGER));
         writeRegisterOperator.execute(context);
         Assert.assertEquals(0, stack.size());
-        Assert.assertEquals("1 1+\n", outContent.toString());
+        Assert.assertEquals("1 1+", outContent.toString());
     }
 
     @Test
@@ -76,7 +76,7 @@ public class WriteRegisterOperatorTest {
         stack.push(new Element("1", ElementType.INTEGER));
         writeRegisterOperator.execute(context);
         Assert.assertEquals(0, stack.size());
-        Assert.assertEquals("1337\n", outContent.toString());
+        Assert.assertEquals("1337", outContent.toString());
     }
 
     @Test(expected = OperatorException.class)

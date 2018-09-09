@@ -34,7 +34,7 @@ public class ParsingToolsTest {
     }
 
     @Test
-    public void testParseElement1() {
+    public void testParseElements1() {
         List<Element> parsedElements = parsingTools.parseElements("2c1 3c-1c1=3c()");
 
         Assert.assertEquals(ElementType.INTEGER, parsedElements.get(0).getElementType());
@@ -52,37 +52,69 @@ public class ParsingToolsTest {
         Assert.assertEquals(ElementType.OPERATOR, parsedElements.get(4).getElementType());
         Assert.assertEquals("c", parsedElements.get(4).getValue());
 
-        Assert.assertEquals(ElementType.OPERATOR, parsedElements.get(5).getElementType());
-        Assert.assertEquals("-", parsedElements.get(5).getValue());
+        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(5).getElementType());
+        Assert.assertEquals("-1", parsedElements.get(5).getValue());
 
-        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(6).getElementType());
-        Assert.assertEquals("1", parsedElements.get(6).getValue());
+        Assert.assertEquals(ElementType.OPERATOR, parsedElements.get(6).getElementType());
+        Assert.assertEquals("c", parsedElements.get(6).getValue());
 
-        Assert.assertEquals(ElementType.OPERATOR, parsedElements.get(7).getElementType());
-        Assert.assertEquals("c", parsedElements.get(7).getValue());
+        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(7).getElementType());
+        Assert.assertEquals("1", parsedElements.get(7).getValue());
 
-        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(8).getElementType());
-        Assert.assertEquals("1", parsedElements.get(8).getValue());
+        Assert.assertEquals(ElementType.OPERATOR, parsedElements.get(8).getElementType());
+        Assert.assertEquals("=", parsedElements.get(8).getValue());
 
-        Assert.assertEquals(ElementType.OPERATOR, parsedElements.get(9).getElementType());
-        Assert.assertEquals("=", parsedElements.get(9).getValue());
+        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(9).getElementType());
+        Assert.assertEquals("3", parsedElements.get(9).getValue());
 
-        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(10).getElementType());
-        Assert.assertEquals("3", parsedElements.get(10).getValue());
+        Assert.assertEquals(ElementType.OPERATOR, parsedElements.get(10).getElementType());
+        Assert.assertEquals("c", parsedElements.get(10).getValue());
 
-        Assert.assertEquals(ElementType.OPERATOR, parsedElements.get(11).getElementType());
-        Assert.assertEquals("c", parsedElements.get(11).getValue());
+        Assert.assertEquals(ElementType.LIST, parsedElements.get(11).getElementType());
+        Assert.assertEquals("()", parsedElements.get(11).getValue());
 
-        Assert.assertEquals(ElementType.LIST, parsedElements.get(12).getElementType());
-        Assert.assertEquals("()", parsedElements.get(12).getValue());
-
-        Assert.assertEquals(13, parsedElements.size());
+        Assert.assertEquals(12, parsedElements.size());
     }
 
     @Test
-    public void testParseElement2() {
+    public void testParseElements2() {
         List<Element> parsedElements = parsingTools.parseElements("");
         Assert.assertEquals(0, parsedElements.size());
+    }
+
+    @Test
+    public void testParseElements3() {
+        List<Element> parsedElements = parsingTools.parseElements("2 -1 2");
+
+        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(0).getElementType());
+        Assert.assertEquals("2", parsedElements.get(0).getValue());
+
+        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(1).getElementType());
+        Assert.assertEquals("-1", parsedElements.get(1).getValue());
+
+        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(2).getElementType());
+        Assert.assertEquals("2", parsedElements.get(2).getValue());
+
+        Assert.assertEquals(3, parsedElements.size());
+    }
+
+    @Test
+    public void testParseElements4() {
+        List<Element> parsedElements = parsingTools.parseElements("1~-1=");
+
+        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(0).getElementType());
+        Assert.assertEquals("1", parsedElements.get(0).getValue());
+
+        Assert.assertEquals(ElementType.OPERATOR, parsedElements.get(1).getElementType());
+        Assert.assertEquals("~", parsedElements.get(1).getValue());
+
+        Assert.assertEquals(ElementType.INTEGER, parsedElements.get(2).getElementType());
+        Assert.assertEquals("-1", parsedElements.get(2).getValue());
+
+        Assert.assertEquals(ElementType.OPERATOR, parsedElements.get(3).getElementType());
+        Assert.assertEquals("=", parsedElements.get(3).getValue());
+
+        Assert.assertEquals(4, parsedElements.size());
     }
 
 }
