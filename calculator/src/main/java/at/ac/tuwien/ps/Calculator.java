@@ -18,7 +18,7 @@ public class Calculator {
 
     private Context context;
 
-    private void initialize() {
+    public void initialize(String program) {
 
         // command stream
         CommandStream commandStream = new CommandStream("0ra");
@@ -37,11 +37,11 @@ public class Calculator {
             }
         }
         Register register0 = registers.get(0);
-        register0.writeElement(new Element(Programs.RUN_PROGRAM, ElementType.LIST));
+        register0.writeElement(new Element(program, ElementType.LIST));
         this.context = new Context(commandStream, stack, registers);
     }
 
-    private void run(boolean verbose) {
+    public void run(boolean verbose) {
         ParsingTools parsingTools = new ParsingTools();
         CommandStream commandStream = context.getCommandStream();
         Stack<Element> stack = context.getDataStack();
@@ -70,7 +70,7 @@ public class Calculator {
 
     public static void main( String[] args ) {
         Calculator calculator = new Calculator();
-        calculator.initialize();
+        calculator.initialize(Programs.RUN_PROGRAM);
         calculator.run(false);
     }
 
