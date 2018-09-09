@@ -3,7 +3,7 @@ package at.ac.tuwien.ps.register;
 import at.ac.tuwien.ps.Programs;
 import at.ac.tuwien.ps.element.Element;
 import at.ac.tuwien.ps.element.ElementType;
-import at.ac.tuwien.ps.parsing.ParsingTools;
+import at.ac.tuwien.ps.element.ParsingTools;
 
 import java.util.Scanner;
 

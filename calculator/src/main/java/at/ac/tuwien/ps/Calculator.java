@@ -3,13 +3,12 @@ package at.ac.tuwien.ps;
 
 import at.ac.tuwien.ps.element.Element;
 import at.ac.tuwien.ps.element.ElementType;
-import at.ac.tuwien.ps.operator.Operator;
-import at.ac.tuwien.ps.operator.OperatorException;
-import at.ac.tuwien.ps.parsing.ParsingTools;
+import at.ac.tuwien.ps.element.ParsingTools;
+import at.ac.tuwien.ps.element.operator.Operator;
+import at.ac.tuwien.ps.element.operator.OperatorException;
 import at.ac.tuwien.ps.register.NormalRegisterContent;
 import at.ac.tuwien.ps.register.Register;
 import at.ac.tuwien.ps.register.StreamingRegisterContent;
-import at.ac.tuwien.ps.stream.CommandStream;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +37,6 @@ public class Calculator {
             }
         }
         Register register0 = registers.get(0);
-        //String program = "(((Please enter your program:)1w1ra1d1ca)1ca)";
         register0.writeElement(new Element(Programs.RUN_PROGRAM, ElementType.LIST));
         this.context = new Context(commandStream, stack, registers);
     }

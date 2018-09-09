@@ -2,7 +2,6 @@ package at.ac.tuwien.ps;
 
 import at.ac.tuwien.ps.element.Element;
 import at.ac.tuwien.ps.register.Register;
-import at.ac.tuwien.ps.stream.*;
 
 import java.util.List;
 import java.util.Stack;
