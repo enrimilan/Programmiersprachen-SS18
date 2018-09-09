@@ -1,6 +1,5 @@
 package at.ac.tuwien.ps.element;
 
-
 import java.util.Objects;
 
 public class Element {
@@ -16,10 +15,6 @@ public class Element {
     public String getValue() {
         return value;
     }
-    
-    public int parseToInt(){
-    	return Integer.parseInt(this.getValue());
-    }
 
     public void setValue(String value) {
         this.value = value;
@@ -33,13 +28,24 @@ public class Element {
         this.elementType = elementType;
     }
 
+    public int parseToInt(){
+        return Integer.parseInt(this.getValue());
+    }
+
+    public String getListContent() {
+        if(elementType != ElementType.LIST) {
+            throw new ElementException(value + " is not a list");
+        }
+        return value.substring(1, value.length() - 1);
+    }
+
+    public Element deepCopy(){
+        return new Element(this.getValue(),this.getElementType());
+    }
+
     @Override
     public String toString() {
         return value;
-    }
-    
-    public Element deepCopy(){
-    	return new Element(this.getValue(),this.getElementType());
     }
 
     @Override
@@ -47,13 +53,11 @@ public class Element {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Element element = (Element) o;
-        return Objects.equals(value, element.value) &&
-                elementType == element.elementType;
+        return Objects.equals(value, element.value) && elementType == element.elementType;
     }
 
     @Override
     public int hashCode() {
-
         return Objects.hash(value, elementType);
     }
 }

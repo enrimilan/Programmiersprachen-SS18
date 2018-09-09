@@ -1,7 +1,10 @@
 package at.ac.tuwien.ps.stream;
 
 import at.ac.tuwien.ps.element.Element;
+import at.ac.tuwien.ps.element.ElementType;
 import at.ac.tuwien.ps.parsing.ParsingTools;
+
+import java.util.List;
 
 public class CommandStream {
 
@@ -12,7 +15,7 @@ public class CommandStream {
         this.content = content;
     }
 
-    /** Reads the next element from the command stream
+    /** Consumes the next element from the command stream
      *  element = Integer | List | Operation
      *  @return the next element
      */
@@ -27,20 +30,27 @@ public class CommandStream {
         return element;
     }
 
+    /**
+     * Prepend the contents of a list to the current command stream
+     * @param element the list
+     */
     public void prependList(Element element) {
-        String value = element.getValue();
-        String listContent = value.substring(1, value.length() - 1);
-        String[] elements = listContent.split(" ");
-        if(elements[elements.length-1].matches("-?\\d+") && content.length()>0 && Character.isDigit(content.charAt(0))) {
+        String listContent = element.getListContent();
+        List<Element> elements = parsingTools.parseElements(listContent);
+        if(!elements.isEmpty() && elements.get(elements.size() - 1).getElementType() == ElementType.INTEGER) {
             listContent = listContent + " ";
         }
         content = listContent  + content;
     }
 
+    /**
+     * Append the contents of a list to the current command stream
+     * @param element the list
+     */
     public void appendList(Element element) {
-        String value = element.getValue();
-        String listContent = value.substring(1, value.length() - 1);
-        if(listContent.matches("-?\\d+") && content.length()>0 && Character.isDigit(content.charAt(0))) {
+        String listContent = element.getListContent();
+        List<Element> elements = parsingTools.parseElements(content);
+        if(!elements.isEmpty() && elements.get(elements.size() - 1).getElementType() != ElementType.LIST) {
             listContent = " " + listContent;
         }
         content = content + listContent;
