@@ -1,4 +1,5 @@
 import System.IO
+import Data.List
 import Control.Exception
 import System.Console.ANSI
 import System.Console.Terminal.Size
@@ -25,6 +26,11 @@ setBold = setSGR [SetConsoleIntensity BoldIntensity]
 
 resetFont :: IO ()
 resetFont = setSGR [Reset]
+
+resetAndColor :: Color -> IO ()
+resetAndColor c = do
+    resetFont
+    setCursorColor c
 
 screenHeight :: IO Int
 screenHeight = do
@@ -112,7 +118,8 @@ printLines (State m (f:fs) p x y l) n
     | n<= 0 = return ()
     | otherwise = do
         putStrLn ""
-        putStr f
+        --putStr f
+        drawRule f
         w <- screenWidth
         printLines (State m fs p x y l) (n - 1 - (quot (length f) w))
 
@@ -217,19 +224,111 @@ removeAtIndex :: Int -> [a] -> [a]
 removeAtIndex index list = replaceAtIndex index [] list
 
 
+-- Line draw Functions
+
+drawRule :: String -> IO ()
+drawRule l = do
+    resetFont
+    case parse l of
+        (Rul h b, rest) -> do
+            drawHead h
+            drawBody b
+            resetAndColor White
+            putStr "."
+        (RuleMissingDot h b, rest) -> do
+            drawHead h
+            drawBody b
+        (FailedRule r1, r2) -> do
+            drawFailure (r1 ++ r2)
+
+drawFailure :: String -> IO ()
+drawFailure f = do
+    resetAndColor Red
+    setBold
+    putStr f
+
+drawHead :: Head -> IO ()
+drawHead (Hea a) = drawAtom a
+
+drawBody :: Body -> IO ()
+drawBody (Bod []) = return ()
+drawBody (Bod (g:gs)) = do
+    resetAndColor Blue
+    putStr ":"
+    drawGoal g
+    drawBody (Bod gs)
+
+drawGoal :: Goal -> IO ()
+drawGoal (AtomGoal a) = drawAtom a
+drawGoal (EqGoal p1 p2) = do 
+    drawPattern p1
+    drawPattern p2
+drawGoal (ShellGoal p1 p2 p3 p4) = do
+    resetAndColor Yellow
+    putStr "$"
+    drawPattern p1; drawPattern p2
+    resetAndColor Yellow
+    putStr "-"
+    drawPattern p3; drawPattern p4
+
+drawAtom :: Atom -> IO ()
+drawAtom (FailedAtom f) = drawFailure f
+drawAtom (Ato n p1 p2) = do
+    drawName n
+    drawPatterns p1
+    resetAndColor Green
+    putStr "-"
+    drawPatterns p2
+        where
+            drawPatterns (p:ps) = do
+                drawPattern p
+                drawPatterns ps
+            drawPatterns _ = return ()
+
+drawName :: Name -> IO ()
+drawName (Nam n) = do
+    resetAndColor Cyan
+    putStr n
+
+drawPattern :: Pattern -> IO ()
+drawPattern (FailedPattern f) = drawFailure f
+drawPattern (Pat []) = return ()
+drawPattern (Pat ts) = do
+    resetAndColor Magenta
+    putStr "("
+    drawTokens ts
+    resetAndColor Magenta
+    putStr ")"
+        where
+            drawTokens (t:ts) = do
+                drawToken t
+                drawTokens ts
+            drawTokens _ = return ()
+
+drawToken :: Token -> IO ()
+drawToken (Lit t) = drawToken' White "" t
+drawToken (Plus t) = drawToken' Blue "+" t
+drawToken (Star t) = drawToken' Yellow "*" t
+
+drawToken' :: Color -> String -> String -> IO ()
+drawToken' c p t = do
+    resetAndColor c
+    putStr (p ++ t)
+
+
 -- Parser (parts from Fortgeschrittene Funktionale Programmierung)
 
 type Parse a b = [a] -> [(b,[a])]
 
 data Token = Lit String | Plus String | Star String deriving (Eq,Ord,Show)
-data Pattern = Pat [Token] deriving (Eq,Ord,Show)
+data Pattern = Pat [Token] | FailedPattern String deriving (Eq,Ord,Show)
 data Name = Nam String deriving (Eq,Ord,Show)
-data Atom = Ato Name [Pattern] [Pattern] deriving (Eq,Ord,Show)
+data Atom = Ato Name [Pattern] [Pattern] | FailedAtom String deriving (Eq,Ord,Show)
 data Goal = AtomGoal Atom | EqGoal Pattern Pattern | ShellGoal Pattern Pattern Pattern Pattern deriving (Eq,Ord,Show)
 data Body = Bod [Goal] deriving (Eq,Ord,Show)
 data Head = Hea Atom deriving (Eq,Ord,Show)
-data Rule = Rul Head Body deriving (Eq,Ord,Show)
-data Programm = Pro [Rule] deriving (Eq,Ord,Show)
+data Rule = Rul Head Body | RuleMissingDot Head Body | FailedRule String deriving (Eq,Ord,Show)
+--data Programm = Pro [Rule] deriving (Eq,Ord,Show)
 
 specialChars = ['\\', ':', '.', '=', '$', '-', '(', ')', '+', '*']
 special c = elem c specialChars
@@ -275,6 +374,8 @@ list p = (succeed []) `alt` ((p >*> list p) `build` (uncurry (:)))
 optional :: Parse a b -> Parse a [b]
 optional p = (succeed []) `alt` (p  `build` (:[]))
 
+myoptional p = optional
+
 
 listOfNotSpecialButNotSpaceOrEscaped = neList (spots (\c escaped -> notSpecial c && c /= ' ' || escaped))
 
@@ -290,7 +391,7 @@ starToken = plusStarToken '*' Star
 openBracket = token '('
 closeBracket = token ')'
 
-pattern = 
+_pattern = 
     (openBracket >*> closeBracket) `build` makeEmptyPattern
     `alt`
     ((openBracket >*>
@@ -301,14 +402,75 @@ pattern =
         makeEmptyPattern _ = Pat []
         makePattern (_,(a,(b,_))) = Pat (a ++ b)
 
+pattern inp 
+    | _pattern inp == [] = [(FailedPattern inp, [])]
+    | otherwise = _pattern inp
+
+
+--listPattern p inp 
+--    | p inp == [(FailedPattern inp,[])] = [([FailedPattern inp],[])]
+--    | otherwise = takeWhile t (list ((:[]).last.p) inp)
+--        where
+--            t (ts, []) = not $ any s ts 
+--            t _ = True
+--            s (FailedPattern _) = True
+--            s _ = False
+
+--listPattern2 inp 
+--    | inp == [] = []  -- empty string is empty list
+--    | _pattern inp == [] = [([FailedPattern inp],[])]  -- [] is an error
+--    | snd pat == [] = conv pat  -- exactly one pattern successfully parsed
+--    | otherwise = conv2 ( (fst pat : concat (map fst (listPattern2 (snd pat)))), snd pat) ++ listPattern2 (snd pat)
+--        where
+--            conv (a, b) = [([a], b)]
+--            conv2 (a, b) = [(a, b)]
+--            pat = last (_pattern inp)
+
+listPattern inp = _listPattern inp []
+_listPattern inp e
+    | inp == [] = [(e,[])]  -- empty string
+    | _pattern inp == [] = [(e ++ [FailedPattern inp],[]), (e,inp)]  -- an error
+    | otherwise = conv2 (en, snd pat) ++ _listPattern (snd pat) (en)
+        where
+            en = e ++ [fst pat]
+            conv (a, b) = [([a], b)]
+            conv2 (a, b) = [(a, b)]
+            pat = last (_pattern inp)
+
+
+--list2 (FailedPattern a, b) = [(a,[b])]
+--list2 inp = list inp
+
+--pattern = optional _pattern `build` makePattern
+--    where
+--        makePattern [Pat x] = Pat x
+--        makePattern [] = Pat []
+
 name = listOfNotSpecialButNotSpaceOrEscaped `build` (Nam . concat)
 
-atom =
+-- test thing, that didn't work
+--[a] -> [(b,[a])]
+--tryp :: Parse Char [Char] -> Char -> Parse Char [Char]
+--tryp f i = f
+--    | f i == [] = i
+--    | otherwise = f i
+
+--test = (list litToken) >*> ( closeBracket)
+--testb = test `build` testbb
+--testbb ((Lit t:ts,b)) = t : testbb ((ts,b))
+--testbb (([],_)) = []
+
+
+_atom =
     (name >*>
-    list pattern >*>
+    listPattern >*>
     token '-' >*>
-    list pattern) `build` makeAtom
+    listPattern) `build` makeAtom
     where makeAtom (name,(p1,(_,p2))) = Ato name p1 p2
+
+atom inp 
+    | _atom inp == [] = [(FailedAtom inp, [])]
+    | otherwise = _atom inp
 
 goal =
     (atom `build` AtomGoal)
@@ -333,11 +495,34 @@ body =
 
 headp = atom `build` Hea
 
-rule =
+_rule =
     (headp >*>
     body >*>
     token '.') `build` makeRule
     where makeRule (h, (b, _)) = Rul h b
 
-program = list rule `build` Pro  -- todo not needed?
+rule inp 
+    | _rule inp == [] = withoutDot inp
+    | otherwise = _rule inp
+    where
+        withoutDot inp
+            | (headp >*> body) inp == [] = [(FailedRule inp, [])]
+            | otherwise = ((headp >*> body) `build` makeRule) inp
+        makeRule (h, b) = RuleMissingDot h b
+
+--program = list rule `build` Pro  -- todo not needed?
+
+parse inp
+    | rule inp == [] = error "This should not happen"
+    | otherwise = findBest (rule inp)
+    where
+        isRule (Rul _ _) = True
+        isRule _ = False
+        checkRule = isRule . fst
+        restLength = length . snd
+        findBest res
+            | any checkRule res = last (filter checkRule res)  -- Successful parse
+            | otherwise = head $ sortBy (\x y -> compare (restLength x) (restLength y)) res  -- Unsuccessful parse, find 
+
+
 
