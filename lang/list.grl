@@ -1,0 +1,34 @@
+size(+element*elements)-:count(+element*elements)(0)-.
+size()-:print(0)-.
+count(+element*elements)(+length)-:increase(+length)-(+increased_length):count(*elements)(+increased_length)-.
+count()(+length)-:print(+length)-.
+increase(+length)-(+increased_length):$(echo "+length \+1 "|bc)()-(+increased_length)(*e).
+
+head(+element*elements)-:print(+element)-.
+head()-:print("List is empty")-.
+
+last(+element)-:print(+element)-.
+last(+element*elements)-:last(*elements)-.
+last()-:print("List is empty")-.
+
+removeLast(*elements)-:removeLast1(*elements)()-(*updatedList):print(*updatedList)-.
+removeLast1(+element)(*list)-(*list).
+removeLast1(+element*elements)(*list)-(*res):append(*list)(+element)-(*extendedList):removeLast1(*elements)(*extendedList)-(*res).
+removeLast1()(*list)-(*list).
+
+remove(*list)(+toRemove)-:remove1(*list)(+toRemove)()-(*updatedList):print(*updatedList)-.
+remove1(+element*elements)(+toRemove)(*list)-(*res):equal(+element)(+toRemove)-(*eq):toDrop(*eq)(*list)(+element)-(*extendedList):remove1(*elements)(+toRemove)(*extendedList)-(*res).
+remove1(+element)(+toRemove)(*included)-(*extendedList):equal(+element)(+toRemove)-(*eq):toDrop(*eq)(*included)(+element)-(*extendedList).
+remove1()(+toRemove)(*included)-(*included).
+toDrop(False)(*elements)(+toInclude)-(*res):append(*elements)(+toInclude)-(*res).
+toDrop(True)(*elements)(+toInclude)-(*elements).
+
+reverse()-:print(Nothing to reverse)-.
+reverse(*list)-:reverse1(*list)()-(*res):print(*res)-.
+reverse1(+element)(*list)-(*extendedList):prepend(*list)(+element)-(*extendedList).
+reverse1(+element*elements)(*list)-(*res):prepend(*list)(+element)-(*extendedList):reverse1(*elements)(*extendedList)-(*res).
+
+append(*elements)(*toAppend)-(*res):$(echo "*elements*toAppend ")()-(*res)(*y).
+prepend(*elements)(*toPrepend)-(*res):$(echo "*toPrepend*elements ")()-(*res)(*y).
+equal(+element1)(+element2)-(*res):$([ +element1 \= +element2 ] && echo True || \([ +element1 !\= +element2 ] && echo False\))()-(*res)(*e).
+print(*s)-:$(echo *s > /dev/tty)()-(*x)(*y).
