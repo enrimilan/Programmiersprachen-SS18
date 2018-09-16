@@ -1,34 +1,35 @@
-size(+element*elements)-:count(+element*elements)(0)-.
+size(+e*e)-:count(+e*e)(0)-.
 size()-:print(0)-.
-count(+element*elements)(+length)-:increase(+length)-(+increased_length):count(*elements)(+increased_length)-.
-count()(+length)-:print(+length)-.
-increase(+length)-(+increased_length):$(echo "+length \+1 "|bc)()-(+increased_length)(*e).
+count(+e*e)(+l)-:increase(+l)-(+i):count(*e)(+i)-.
+count()(+l)-:print(+l)-.
+increase(+l)-(+i):$(echo "+l \+1 "|bc)()-(+i)(*e).
 
-head(+element*elements)-:print(+element)-.
-head()-:print("List is empty")-.
+head(+e*e)-:print(+e)-.
+head()-:print( )-.
 
-last(+element)-:print(+element)-.
-last(+element*elements)-:last(*elements)-.
-last()-:print("List is empty")-.
+last(+e)-:print(+e)-.
+last(+e*e)-:last(*e)-.
+last()-:print( )-.
 
-removeLast(*elements)-:removeLast1(*elements)()-(*updatedList):print(*updatedList)-.
-removeLast1(+element)(*list)-(*list).
-removeLast1(+element*elements)(*list)-(*res):append(*list)(+element)-(*extendedList):removeLast1(*elements)(*extendedList)-(*res).
-removeLast1()(*list)-(*list).
+removeLast(*e)-:removeLast1(*e)()-(*l):print(*l)-.
+removeLast1(+e)(*l)-(*l).
+removeLast1(+e*e)(*l)-(*r):append(*l)(+e)-(*x):removeLast1(*e)(*x)-(*r).
+removeLast1()(*l)-(*l).
 
-remove(*list)(+toRemove)-:remove1(*list)(+toRemove)()-(*updatedList):print(*updatedList)-.
-remove1(+element*elements)(+toRemove)(*list)-(*res):equal(+element)(+toRemove)-(*eq):toDrop(*eq)(*list)(+element)-(*extendedList):remove1(*elements)(+toRemove)(*extendedList)-(*res).
-remove1(+element)(+toRemove)(*included)-(*extendedList):equal(+element)(+toRemove)-(*eq):toDrop(*eq)(*included)(+element)-(*extendedList).
-remove1()(+toRemove)(*included)-(*included).
-toDrop(False)(*elements)(+toInclude)-(*res):append(*elements)(+toInclude)-(*res).
-toDrop(True)(*elements)(+toInclude)-(*elements).
+remove(*e)()-:print(*e)-.
+remove(*l)(+d)-:remove1(*l)(+d)()-(*x):print(*x)-.
+remove1(+e*e)(+d)(*l)-(*r):equal(+e)(+d)-(*q):toDrop(*q)(*l)(+e)-(*x):remove1(*e)(+d)(*x)-(*r).
+remove1(+e)(+d)(*i)-(*x):equal(+e)(+d)-(*q):toDrop(*q)(*i)(+e)-(*x).
+remove1()(+d)(*i)-(*i).
+toDrop(F)(*e)(+i)-(*r):append(*e)(+i)-(*r).
+toDrop(T)(*e)(+i)-(*e).
 
-reverse()-:print(Nothing to reverse)-.
-reverse(*list)-:reverse1(*list)()-(*res):print(*res)-.
-reverse1(+element)(*list)-(*extendedList):prepend(*list)(+element)-(*extendedList).
-reverse1(+element*elements)(*list)-(*res):prepend(*list)(+element)-(*extendedList):reverse1(*elements)(*extendedList)-(*res).
+reverse()-:print( )-.
+reverse(*l)-:reverse1(*l)()-(*r):print(*r)-.
+reverse1(+e)(*l)-(*x):prepend(*l)(+e)-(*x).
+reverse1(+e*e)(*l)-(*r):prepend(*l)(+e)-(*x):reverse1(*e)(*x)-(*r).
 
-append(*elements)(*toAppend)-(*res):$(echo "*elements*toAppend ")()-(*res)(*y).
-prepend(*elements)(*toPrepend)-(*res):$(echo "*toPrepend*elements ")()-(*res)(*y).
-equal(+element1)(+element2)-(*res):$([ +element1 \= +element2 ] && echo True || \([ +element1 !\= +element2 ] && echo False\))()-(*res)(*e).
+append(*e)(*a)-(*r):$(echo "*e*a ")()-(*r)(*y).
+prepend(*e)(*p)-(*r):$(echo "*p*e ")()-(*r)(*y).
+equal(+a)(+b)-(*r):$([ +a \= +b ] && echo T || \([ +a !\= +b ] && echo F\))()-(*r)(*e).
 print(*s)-:$(echo *s > /dev/tty)()-(*x)(*y).
