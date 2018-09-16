@@ -84,7 +84,7 @@ saveFileMenu s@(State m f p x y l) = do
     putStrLn ""
     putStr ("Save at path: ")
     path <- getLine
-    eitherException <- (try $ writeFile path (concat f)) :: IO (Either IOException ())
+    eitherException <- (try $ writeFile path (intercalate "\n" f)) :: IO (Either IOException ())
     case eitherException of
         Left exception -> do
             putStrLn "File could not be saved!"
@@ -104,7 +104,7 @@ mainLoopMenu s@(State m f p x y l) = do
     case c of
         '1' -> openFileMenu s
         '2' -> saveFileMenu s
-        '3' -> mainLoop (State EditMode f p x y l)
+        '3' -> mainLoop (State EditMode f p 0 0 l)
         '4' -> do
             putStrLn " Exiting!"
             resetFont
@@ -235,9 +235,11 @@ drawRule l = do
             drawBody b
             resetAndColor White
             putStr "."
+            drawFailure rest
         (RuleMissingDot h b, rest) -> do
             drawHead h
             drawBody b
+            drawFailure rest
         (FailedRule r1, r2) -> do
             drawFailure (r1 ++ r2)
 
@@ -262,6 +264,8 @@ drawGoal :: Goal -> IO ()
 drawGoal (AtomGoal a) = drawAtom a
 drawGoal (EqGoal p1 p2) = do 
     drawPattern p1
+    resetAndColor Magenta
+    putStr "="
     drawPattern p2
 drawGoal (ShellGoal p1 p2 p3 p4) = do
     resetAndColor Yellow
@@ -292,7 +296,6 @@ drawName (Nam n) = do
 
 drawPattern :: Pattern -> IO ()
 drawPattern (FailedPattern f) = drawFailure f
-drawPattern (Pat []) = return ()
 drawPattern (Pat ts) = do
     resetAndColor Magenta
     putStr "("
@@ -309,6 +312,7 @@ drawToken :: Token -> IO ()
 drawToken (Lit t) = drawToken' White "" t
 drawToken (Plus t) = drawToken' Blue "+" t
 drawToken (Star t) = drawToken' Yellow "*" t
+drawToken Space = drawToken' White "" " "
 
 drawToken' :: Color -> String -> String -> IO ()
 drawToken' c p t = do
@@ -320,7 +324,7 @@ drawToken' c p t = do
 
 type Parse a b = [a] -> [(b,[a])]
 
-data Token = Lit String | Plus String | Star String deriving (Eq,Ord,Show)
+data Token = Lit String | Plus String | Star String | Space deriving (Eq,Ord,Show)
 data Pattern = Pat [Token] | FailedPattern String deriving (Eq,Ord,Show)
 data Name = Nam String deriving (Eq,Ord,Show)
 data Atom = Ato Name [Pattern] [Pattern] | FailedAtom String deriving (Eq,Ord,Show)
@@ -330,9 +334,8 @@ data Head = Hea Atom deriving (Eq,Ord,Show)
 data Rule = Rul Head Body | RuleMissingDot Head Body | FailedRule String deriving (Eq,Ord,Show)
 --data Programm = Pro [Rule] deriving (Eq,Ord,Show)
 
-specialChars = ['\\', ':', '.', '=', '$', '-', '(', ')', '+', '*']
-special c = elem c specialChars
-notSpecial c = not (special c)
+specialChars = ['\\', ':', '.', '=', '$', '-', '(', ')', '+', '*', ' ']
+notSpecial c = not (elem c specialChars)
 
 none :: Parse a b
 none _ = []
@@ -377,7 +380,7 @@ optional p = (succeed []) `alt` (p  `build` (:[]))
 myoptional p = optional
 
 
-listOfNotSpecialButNotSpaceOrEscaped = neList (spots (\c escaped -> notSpecial c && c /= ' ' || escaped))
+listOfNotSpecialButNotSpaceOrEscaped = neList (spots (\c escaped -> notSpecial c || escaped))
 
 litToken = listOfNotSpecialButNotSpaceOrEscaped `build` makeToken
     where makeToken nameList = Lit (concat nameList)
@@ -388,6 +391,9 @@ plusStarToken ps t = (token ps >*> listOfNotSpecialButNotSpaceOrEscaped) `build`
 plusToken = plusStarToken '+' Plus
 starToken = plusStarToken '*' Star
 
+spaceToken = (spots (\c escaped -> c == ' ' && not escaped)) `build` makeToken
+    where makeToken _ = Space 
+
 openBracket = token '('
 closeBracket = token ')'
 
@@ -395,7 +401,7 @@ _pattern =
     (openBracket >*> closeBracket) `build` makeEmptyPattern
     `alt`
     ((openBracket >*>
-    list (litToken `alt` plusToken) >*>
+    list (litToken `alt` plusToken `alt` spaceToken) >*>
     optional starToken >*>
     closeBracket) `build` makePattern)
     where
