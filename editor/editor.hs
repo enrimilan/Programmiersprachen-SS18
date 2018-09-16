@@ -1,5 +1,7 @@
 import System.IO
 import Data.List
+import Data.Map (Map, (!))
+import qualified Data.Map as Map
 import Control.Exception
 import System.Console.ANSI
 import System.Console.Terminal.Size
@@ -7,7 +9,6 @@ import System.Console.Terminal.Size
 type FileBuffer = String
 type Path = String
 data EMode = EditMode | MenuMode deriving Eq
---newtype State = State (EMode, FileBuffer, Path, Int, Int)
 data State = State { editorMode :: EMode, fileBuffer :: [String], filePath :: String, screenX :: Int, screenY :: Int, scrollLine :: Int }
 
 
@@ -20,6 +21,9 @@ clearScreenAndSetCursor = do
 
 setCursorColor :: Color -> IO ()
 setCursorColor c = setSGR [SetColor Foreground Vivid c]
+
+setBGColor :: Color -> IO ()
+setBGColor c = setSGR [SetColor Background Vivid c]
 
 setBold :: IO ()
 setBold = setSGR [SetConsoleIntensity BoldIntensity]
@@ -226,22 +230,36 @@ removeAtIndex index list = replaceAtIndex index [] list
 
 -- Line draw Functions
 
+intToColor :: Integral a => a -> Color
+intToColor i = case mod i 4 of
+    0 -> Red
+    1 -> Green
+    2 -> Magenta
+    3 -> Cyan
+
 drawRule :: String -> IO ()
 drawRule l = do
     resetFont
     case parse l of
         (Rul h b, rest) -> do
-            drawHead h
-            drawBody b
+            drawHead ch
+            drawBody cb
             resetAndColor White
             putStr "."
             drawFailure rest
+            where
+                (ch, cm) = (colorHead h Map.empty)
+                cb = fst (colorBody b cm)
         (RuleMissingDot h b, rest) -> do
-            drawHead h
-            drawBody b
+            drawHead ch
+            drawBody cb
             drawFailure rest
+            where
+                (ch, cm) = (colorHead h Map.empty)
+                cb = fst (colorBody b cm)
         (FailedRule r1, r2) -> do
             drawFailure (r1 ++ r2)
+    
 
 drawFailure :: String -> IO ()
 drawFailure f = do
@@ -309,22 +327,96 @@ drawPattern (Pat ts) = do
             drawTokens _ = return ()
 
 drawToken :: Token -> IO ()
-drawToken (Lit t) = drawToken' White "" t
-drawToken (Plus t) = drawToken' Blue "+" t
-drawToken (Star t) = drawToken' Yellow "*" t
-drawToken Space = drawToken' White "" " "
+drawToken (Lit t c) = drawToken' White c "" t
+drawToken (Plus t c) = drawToken' Blue c "+" t
+drawToken (Star t c) = drawToken' Yellow c "*" t
+drawToken Space = drawToken' White Black "" " "
 
-drawToken' :: Color -> String -> String -> IO ()
-drawToken' c p t = do
+drawToken' :: Color -> Color -> String -> String -> IO ()
+drawToken' c b p t = do
     resetAndColor c
+    setBGColor b
     putStr (p ++ t)
+
+
+-- Coloring Functions
+
+colorBody :: Body -> Map [Char] Color -> (Body, Map [Char] Color)
+colorBody (Bod gs) m = (Bod cg,cm)
+    where (cg,cm) = colorGoals gs m
+
+colorGoals :: [Goal] -> Map [Char] Color -> ([Goal], Map [Char] Color)
+colorGoals [] m = ([],m)
+colorGoals (g:gs) m = (cg : (fst rest),snd rest)
+    where
+        (cg,cm) = colorGoal g m
+        rest = colorGoals gs cm
+
+colorGoal :: Goal -> Map [Char] Color -> (Goal, Map [Char] Color)
+colorGoal (AtomGoal g) m = (AtomGoal cg,cm)
+    where (cg,cm) = colorAtom g m
+colorGoal (EqGoal g1 g2) m = (EqGoal cg1 cg2,cm2)
+    where
+        (cg1,cm1) = colorPattern g1 m
+        (cg2,cm2) = colorPattern cg1 cm1
+colorGoal (ShellGoal g1 g2 g3 g4) m = (ShellGoal cg1 cg2 cg3 cg4,cm4)
+    where
+        (cg1,cm1) = colorPattern g1 m
+        (cg2,cm2) = colorPattern g2 cm1
+        (cg3,cm3) = colorPattern g3 cm2
+        (cg4,cm4) = colorPattern g4 cm3
+
+colorAtom :: Atom -> Map [Char] Color -> (Atom, Map [Char] Color)
+colorAtom f@(FailedAtom _) m = (f,m)
+colorAtom (Ato s as1 as2) m = (Ato s ca1 ca2,cm2)
+    where
+        (ca1,cm1) = colorPatterns as1 m
+        (ca2,cm2) = colorPatterns as2 cm1
+
+colorPatterns :: [Pattern] -> Map [Char] Color -> ([Pattern], Map [Char] Color)   
+colorPatterns [] m = ([],m)
+colorPatterns (a:as) m = (ca : (fst rest),snd rest)
+    where 
+        (ca,cm) = colorPattern a m
+        rest = colorPatterns as cm
+
+colorHead :: Head -> Map [Char] Color -> (Head, Map [Char] Color)
+colorHead (Hea h) m = (Hea ch,cm)
+    where (ch,cm) = colorAtom h m
+
+colorPattern :: Pattern -> Map [Char] Color -> (Pattern, Map [Char] Color)
+colorPattern f@(FailedPattern _) m = (f,m)
+colorPattern (Pat ts) m = (Pat ct,cm)
+    where
+        (ct,cm) = colorTokens ts m
+    
+colorTokens :: [Token] -> Map [Char] Color -> ([Token], Map [Char] Color)
+colorTokens [] m = ([],m)
+colorTokens (t:ts) m = (ct : (fst rest),snd rest)
+    where
+        (ct,cm) = colorToken t m
+        rest = colorTokens ts cm
+
+colorToken :: Token -> Map [Char] Color -> (Token, Map [Char] Color)
+colorToken Space m = (Space,m)
+colorToken (Lit t _) m = _colorToken Lit t m ""
+colorToken (Plus t _) m = _colorToken Plus t m "+"
+colorToken (Star t _) m = _colorToken Star t m "*"
+
+_colorToken :: Ord a1 => ([a1] -> Color -> a2) -> [a1] -> Map [a1] Color -> [a1] -> (a2, Map [a1] Color)
+_colorToken c t m p
+    | Map.member (p ++ t) m = (c t (m ! (p ++ t)),m)
+    | otherwise = (c t (mapToColor m),Map.insert (p ++ t) (mapToColor m) m)
+
+mapToColor :: Map k a -> Color
+mapToColor m = intToColor (Map.size m)
 
 
 -- Parser (parts from Fortgeschrittene Funktionale Programmierung)
 
 type Parse a b = [a] -> [(b,[a])]
 
-data Token = Lit String | Plus String | Star String | Space deriving (Eq,Ord,Show)
+data Token = Lit String Color | Plus String Color | Star String Color | Space deriving (Eq,Ord,Show)
 data Pattern = Pat [Token] | FailedPattern String deriving (Eq,Ord,Show)
 data Name = Nam String deriving (Eq,Ord,Show)
 data Atom = Ato Name [Pattern] [Pattern] | FailedAtom String deriving (Eq,Ord,Show)
@@ -332,7 +424,6 @@ data Goal = AtomGoal Atom | EqGoal Pattern Pattern | ShellGoal Pattern Pattern P
 data Body = Bod [Goal] deriving (Eq,Ord,Show)
 data Head = Hea Atom deriving (Eq,Ord,Show)
 data Rule = Rul Head Body | RuleMissingDot Head Body | FailedRule String deriving (Eq,Ord,Show)
---data Programm = Pro [Rule] deriving (Eq,Ord,Show)
 
 specialChars = ['\\', ':', '.', '=', '$', '-', '(', ')', '+', '*', ' ']
 notSpecial c = not (elem c specialChars)
@@ -377,26 +468,33 @@ list p = (succeed []) `alt` ((p >*> list p) `build` (uncurry (:)))
 optional :: Parse a b -> Parse a [b]
 optional p = (succeed []) `alt` (p  `build` (:[]))
 
-myoptional p = optional
 
-
+listOfNotSpecialButNotSpaceOrEscaped :: Parse Char [String]
 listOfNotSpecialButNotSpaceOrEscaped = neList (spots (\c escaped -> notSpecial c || escaped))
 
+litToken :: Parse Char Token
 litToken = listOfNotSpecialButNotSpaceOrEscaped `build` makeToken
-    where makeToken nameList = Lit (concat nameList)
+    where makeToken nameList = Lit (concat nameList) White
 
+plusStarToken :: Char -> ([Char] -> Color -> c) -> Parse Char c
 plusStarToken ps t = (token ps >*> listOfNotSpecialButNotSpaceOrEscaped) `build` makeToken
-    where makeToken (_,nameList) = t (concat nameList)
+    where makeToken (_,nameList) = t (concat nameList) White
 
+plusToken :: Parse Char Token
 plusToken = plusStarToken '+' Plus
+starToken :: Parse Char Token
 starToken = plusStarToken '*' Star
 
+spaceToken :: Parse Char Token
 spaceToken = (spots (\c escaped -> c == ' ' && not escaped)) `build` makeToken
     where makeToken _ = Space 
 
+openBracket :: Parse Char String
 openBracket = token '('
+closeBracket :: Parse Char String
 closeBracket = token ')'
 
+_pattern :: Parse Char Pattern
 _pattern = 
     (openBracket >*> closeBracket) `build` makeEmptyPattern
     `alt`
@@ -408,30 +506,12 @@ _pattern =
         makeEmptyPattern _ = Pat []
         makePattern (_,(a,(b,_))) = Pat (a ++ b)
 
+pattern :: Parse Char Pattern
 pattern inp 
     | _pattern inp == [] = [(FailedPattern inp, [])]
-    | otherwise = _pattern inp
+    | otherwise = _pattern inp -- todo try speed improvement: [last (_pattern inp)]
 
-
---listPattern p inp 
---    | p inp == [(FailedPattern inp,[])] = [([FailedPattern inp],[])]
---    | otherwise = takeWhile t (list ((:[]).last.p) inp)
---        where
---            t (ts, []) = not $ any s ts 
---            t _ = True
---            s (FailedPattern _) = True
---            s _ = False
-
---listPattern2 inp 
---    | inp == [] = []  -- empty string is empty list
---    | _pattern inp == [] = [([FailedPattern inp],[])]  -- [] is an error
---    | snd pat == [] = conv pat  -- exactly one pattern successfully parsed
---    | otherwise = conv2 ( (fst pat : concat (map fst (listPattern2 (snd pat)))), snd pat) ++ listPattern2 (snd pat)
---        where
---            conv (a, b) = [([a], b)]
---            conv2 (a, b) = [(a, b)]
---            pat = last (_pattern inp)
-
+listPattern :: [Char] -> [([Pattern], [Char])]
 listPattern inp = _listPattern inp []
 _listPattern inp e
     | inp == [] = [(e,[])]  -- empty string
@@ -443,30 +523,10 @@ _listPattern inp e
             conv2 (a, b) = [(a, b)]
             pat = last (_pattern inp)
 
-
---list2 (FailedPattern a, b) = [(a,[b])]
---list2 inp = list inp
-
---pattern = optional _pattern `build` makePattern
---    where
---        makePattern [Pat x] = Pat x
---        makePattern [] = Pat []
-
+name :: Parse Char Name
 name = listOfNotSpecialButNotSpaceOrEscaped `build` (Nam . concat)
 
--- test thing, that didn't work
---[a] -> [(b,[a])]
---tryp :: Parse Char [Char] -> Char -> Parse Char [Char]
---tryp f i = f
---    | f i == [] = i
---    | otherwise = f i
-
---test = (list litToken) >*> ( closeBracket)
---testb = test `build` testbb
---testbb ((Lit t:ts,b)) = t : testbb ((ts,b))
---testbb (([],_)) = []
-
-
+_atom :: Parse Char Atom
 _atom =
     (name >*>
     listPattern >*>
@@ -474,10 +534,12 @@ _atom =
     listPattern) `build` makeAtom
     where makeAtom (name,(p1,(_,p2))) = Ato name p1 p2
 
+atom :: Parse Char Atom
 atom inp 
     | _atom inp == [] = [(FailedAtom inp, [])]
     | otherwise = _atom inp
 
+goal :: Parse Char Goal
 goal =
     (atom `build` AtomGoal)
     `alt`
@@ -495,18 +557,22 @@ goal =
         makeEqGoal (p1, (_, p2)) = EqGoal p1 p2
         makeShellGoal (_, (p1, (p2, (_, (p3, p4))))) = ShellGoal p1 p2 p3 p4
 
+body :: Parse Char Body
 body =
     (list (token ':' >*> goal)) `build` makeBody
     where makeBody goals = Bod (map snd goals)
 
+headp :: Parse Char Head
 headp = atom `build` Hea
 
+_rule :: Parse Char Rule
 _rule =
     (headp >*>
     body >*>
     token '.') `build` makeRule
     where makeRule (h, (b, _)) = Rul h b
 
+rule :: Parse Char Rule
 rule inp 
     | _rule inp == [] = withoutDot inp
     | otherwise = _rule inp
@@ -516,8 +582,7 @@ rule inp
             | otherwise = ((headp >*> body) `build` makeRule) inp
         makeRule (h, b) = RuleMissingDot h b
 
---program = list rule `build` Pro  -- todo not needed?
-
+parse :: [Char] -> (Rule, [Char])
 parse inp
     | rule inp == [] = error "This should not happen"
     | otherwise = findBest (rule inp)
@@ -528,7 +593,5 @@ parse inp
         restLength = length . snd
         findBest res
             | any checkRule res = last (filter checkRule res)  -- Successful parse
-            | otherwise = head $ sortBy (\x y -> compare (restLength x) (restLength y)) res  -- Unsuccessful parse, find 
-
-
+            | otherwise = head $ sortBy (\x y -> compare (restLength x) (restLength y)) res  -- Unsuccessful parse, find with least rest
 
