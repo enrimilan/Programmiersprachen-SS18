@@ -2,7 +2,7 @@ size(+e*e)-:count(+e*e)(0)-.
 size()-:print(0)-.
 count(+e*e)(+l)-:increase(+l)-(+i):count(*e)(+i)-.
 count()(+l)-:print(+l)-.
-increase(+l)-(+i):$(echo "+l \+1 "|bc)()-(+i)(*e).
+increase(+l)-(+i):$(\./i\.sh+l)()-(+i)(*e).
 
 head(+e*e)-:print(+e)-.
 head()-:print( )-.
@@ -29,7 +29,7 @@ reverse(*l)-:reverse1(*l)()-(*r):print(*r)-.
 reverse1(+e)(*l)-(*x):prepend(*l)(+e)-(*x).
 reverse1(+e*e)(*l)-(*r):prepend(*l)(+e)-(*x):reverse1(*e)(*x)-(*r).
 
-append(*e)(*a)-(*r):$(echo "*e*a ")()-(*r)(*y).
-prepend(*e)(*p)-(*r):$(echo "*p*e ")()-(*r)(*y).
-equal(+a)(+b)-(*r):$([ +a \= +b ] && echo T || \([ +a !\= +b ] && echo F\))()-(*r)(*e).
-print(*s)-:$(echo *s > /dev/tty)()-(*x)(*y).
+append(*e)(+a)-(*r):$(\./ap\.sh+a*e)()-(*r)(*y).
+prepend(*e)(+p)-(*r):$(\./pr\.sh+p*e)()-(*r)(*y).
+equal(+a)(+b)-(*r):$(\./e\.sh+a+b)()-(*r)(*e).
+print(*s)-:$(\./p\.sh*s)()-(*x)(*y).
