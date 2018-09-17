@@ -9,7 +9,16 @@ import System.Console.Terminal.Size
 type FileBuffer = String
 type Path = String
 data EMode = EditMode | MenuMode deriving Eq
-data State = State { editorMode :: EMode, fileBuffer :: [String], filePath :: String, screenX :: Int, screenY :: Int, scrollLine :: Int }
+data State = 
+    State 
+        { editorMode :: EMode
+        , fileBuffer :: [String]
+        , filePath :: String
+        , screenX :: Int
+        , screenY :: Int
+        , scrollLine :: Int 
+        , rules :: [(Rule, [Char])]
+        }
 
 
 -- Printing Functions
@@ -70,7 +79,7 @@ printMenu s = do
     putStrLn ""
 
 openFileMenu :: State -> IO ()
-openFileMenu s@(State m _ _ x y l) = do
+openFileMenu s@(State m _ _ x y l rules) = do
     putStrLn ""
     putStr "Enter file path: "
     p <- getLine
@@ -81,10 +90,10 @@ openFileMenu s@(State m _ _ x y l) = do
             openFileMenu s
          Right content -> do
             clearScreenAndSetCursor
-            mainLoop (State m (lines content) p x y l)
+            mainLoop (State m (lines content) p x y l rules)
 
 saveFileMenu :: State -> IO ()
-saveFileMenu s@(State m f p x y l) = do
+saveFileMenu s@(State m f p x y l rules) = do
     putStrLn ""
     putStr ("Save at path: ")
     path <- getLine
@@ -95,10 +104,10 @@ saveFileMenu s@(State m f p x y l) = do
             saveFileMenu s
         Right _ -> do
             clearScreenAndSetCursor
-            mainLoop (State m f path x y l)
+            mainLoop (State m f path x y l rules)
 
 mainLoopMenu :: State -> IO ()
-mainLoopMenu s@(State m f p x y l) = do
+mainLoopMenu s@(State m f p x y l rules) = do
     resetFont
     setBold
     setCursorColor Yellow
@@ -108,7 +117,7 @@ mainLoopMenu s@(State m f p x y l) = do
     case c of
         '1' -> openFileMenu s
         '2' -> saveFileMenu s
-        '3' -> mainLoop (State EditMode f p 0 0 l)
+        '3' -> mainLoop (State EditMode f p 0 0 l (parseRules f))
         '4' -> do
             putStrLn " Exiting!"
             resetFont
@@ -117,46 +126,46 @@ mainLoopMenu s@(State m f p x y l) = do
 
 -- Editor Mode
 printLines :: State -> Int -> IO ()
-printLines (State _ [] _ _ _ _) _ = return ()
-printLines (State m (f:fs) p x y l) n 
+printLines (State _ [] _ _ _ _ _) _ = return ()
+printLines (State m (f:fs) p x y l (r:rs)) n 
     | n<= 0 = return ()
     | otherwise = do
         putStrLn ""
         --putStr f
-        drawRule f
+        drawRule r
         w <- screenWidth
-        printLines (State m fs p x y l) (n - 1 - (quot (length f) w))
+        printLines (State m fs p x y l rs) (n - 1 - (quot (length f) w))
 
 
 printEditorMode :: State -> IO ()
-printEditorMode (State m f p x y l) = do
+printEditorMode (State m f p x y l rules) = do
     setBold
     setCursorColor Blue
     putStr ("File: " ++ p)
     resetFont
     h <- screenHeight
-    printLines (State m dropped p x y l) (min (length dropped) h)
+    printLines (State m dropped p x y l rules) (min (length dropped) h)
         where
             dropped = (drop l f)
 
 
 insertChar :: State -> [Char] -> State
-insertChar s@(State m f p x y l) c = State m new p x (y + 1) l
+insertChar s@(State m f p x y l rules) c = State m new p x (y + 1) l (parseRules (drop l new))
     where
         new = replaceAtIndex x [newLine] f
         newLine = insertAtIndex y c (f !! x)
 
 insertEnter :: State -> State
-insertEnter s@(State m f p x y l) = State m new p (x + 1) 0 l
+insertEnter s@(State m f p x y l rules) = State m new p (x + 1) 0 l (parseRules (drop l new))
     where
         new = replaceAtIndex x [xs,ys] f
         (xs,ys) = splitAt y (f !! x)
 
 backspace :: State -> State
-backspace s@(State m f p x y l)
+backspace s@(State m f p x y l rules)
     | y == 0 && x == 0 = s
-    | y == 0 = State m newCombined p (x - 1) (length (f !! (x - 1))) l
-    | otherwise = State m new p x (y - 1) l
+    | y == 0 = State m newCombined p (x - 1) (length (f !! (x - 1))) l (parseRules (drop l newCombined))
+    | otherwise = State m new p x (y - 1) l (parseRules (drop l new))
         where
             newCombined = removeAtIndex x (replaceAtIndex (x - 1) [newLineCombined] f)
             newLineCombined = (f !! (x - 1)) ++ (f !! x)
@@ -164,7 +173,7 @@ backspace s@(State m f p x y l)
             newLine = removeAtIndex (y - 1) (f !! x)
 
 mainLoopEdit :: State -> IO ()
-mainLoopEdit s@(State m f p x y l) = do
+mainLoopEdit s@(State m f p x y l rules) = do
     resetFont
     clearScreenAndSetCursor
     printEditorMode s
@@ -173,19 +182,19 @@ mainLoopEdit s@(State m f p x y l) = do
     h <- screenHeight
     w <- screenWidth
     case c of
-        "\ESC" -> mainLoop (State MenuMode f p x y l)
-        "\ESC[A" -> mainLoop (State EditMode f p (ifBetween (x - 1) 0 h x) y checkUp) -- up
+        "\ESC" -> mainLoop (State MenuMode f p x y l rules)
+        "\ESC[A" -> mainLoop (State EditMode f p (ifBetween (x - 1) 0 h x) y checkUp rules) -- up
             where
                 checkUp
                     | x == 0 = l - 1
                     | otherwise = l
-        "\ESC[B" -> mainLoop (State EditMode f p (ifBetween (x + 1) 0 (h - 1) x) y checkDown) -- down
+        "\ESC[B" -> mainLoop (State EditMode f p (ifBetween (x + 1) 0 (h - 1) x) y checkDown rules) -- down
             where
                 checkDown
                     | x == h - 1 && (length f) - h > l = l + 1
                     | otherwise = l
-        "\ESC[C" -> mainLoop (State EditMode f p x (ifBetween (y + 1) 0 w y) l) -- right
-        "\ESC[D" -> mainLoop (State EditMode f p x (ifBetween (y - 1) 0 w y) l) -- left
+        "\ESC[C" -> mainLoop (State EditMode f p x (ifBetween (y + 1) 0 w y) l rules) -- right
+        "\ESC[D" -> mainLoop (State EditMode f p x (ifBetween (y - 1) 0 w y) l rules) -- left
         "\n" -> mainLoopEdit (insertEnter s)
         "\DEL" -> mainLoopEdit (backspace s)
         _ -> mainLoopEdit (insertChar s c)
@@ -195,12 +204,12 @@ mainLoopEdit s@(State m f p x y l) = do
 -- Main Functions
 
 mainLoop :: State -> IO ()
-mainLoop s@(State MenuMode _ _ _ _ _) = mainLoopMenu s
-mainLoop s@(State EditMode _ _ _ _ _) = mainLoopEdit s
+mainLoop s@(State MenuMode _ _ _ _ _ _) = mainLoopMenu s
+mainLoop s@(State EditMode _ _ _ _ _ _) = mainLoopEdit s
 
 main = do
     clearScreenAndSetCursor
-    mainLoop (State MenuMode [""] "new" 0 0 0)
+    mainLoop (State MenuMode [""] "new" 0 0 0 [])
 
 
 -- Source: https://stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input
@@ -237,10 +246,9 @@ intToColor i = case mod i 4 of
     2 -> Magenta
     3 -> Cyan
 
-drawRule :: String -> IO ()
-drawRule l = do
-    resetFont
-    case parse l of
+drawRule :: (Rule, [Char]) -> IO ()
+drawRule rule = do
+    case rule of
         (Rul h b, rest) -> do
             drawHead ch
             drawBody cb
@@ -595,3 +603,5 @@ parse inp
             | any checkRule res = last (filter checkRule res)  -- Successful parse
             | otherwise = head $ sortBy (\x y -> compare (restLength x) (restLength y)) res  -- Unsuccessful parse, find with least rest
 
+parseRules :: [String] -> [(Rule, [Char])]
+parseRules rules = map parse rules
