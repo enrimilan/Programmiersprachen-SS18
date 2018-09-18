@@ -13,6 +13,6 @@ cabal install ansi-terminal terminal-size
 
 Run with:
 ```
-ghci editor.hs
+ghci Editor.hs
 main
 ```
