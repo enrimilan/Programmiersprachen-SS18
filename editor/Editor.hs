@@ -1,7 +1,6 @@
 import System.IO
 import Data.List
-import Data.Map (Map, (!))
-import qualified Data.Map as Map
+import Data.Maybe
 import Control.Exception
 import System.Console.ANSI
 import System.Console.Terminal.Size
@@ -117,7 +116,7 @@ printLines (State m (f:fs) p x y l (r:rs)) n
     | otherwise = do
         putStrLn ""
         --putStr f
-        drawRule r
+        drawRule r y  -- todo wrapped lines
         w <- screenWidth
         printLines (State m fs p x y l rs) (n - 1 - (quot (length f) w))
 
@@ -170,32 +169,27 @@ screenWidth = do
 
 -- Line draw Functions
 
-intToColor :: Integral a => a -> Color
-intToColor i = case mod i 4 of
-    0 -> Red
-    1 -> Green
-    2 -> Magenta
-    3 -> Cyan
-
-drawRule :: (Rule, [Char]) -> IO ()
-drawRule rule = do
+drawRule :: (Rule, [Char]) -> Int -> IO ()
+drawRule rule cursor = do
     case rule of
         (Rul h b, rest) -> do
-            drawHead ch
-            drawBody cb
+            drawHead h nt
+            drawBody b nt
             resetAndColor White
             putStr "."
             drawFailure rest
             where
-                (ch, cm) = (colorHead h Map.empty)
-                cb = fst (colorBody b cm)
+                (nth, p) = (findInHead h cursor 0)
+                ntb = fst (findInBody b cursor p)
+                nt = combineMaybe [nth, ntb]
         (RuleMissingDot h b, rest) -> do
-            drawHead ch
-            drawBody cb
+            drawHead h nt
+            drawBody b nt
             drawFailure rest
             where
-                (ch, cm) = (colorHead h Map.empty)
-                cb = fst (colorBody b cm)
+                (nth, p) = (findInHead h cursor 0)
+                ntb = fst (findInBody b cursor p)
+                nt = combineMaybe [nth, ntb]
         (FailedRule r1, r2) -> do
             drawFailure (r1 ++ r2)
     
@@ -206,146 +200,180 @@ drawFailure f = do
     setBold
     putStr f
 
-drawHead :: Head -> IO ()
-drawHead (Hea a) = drawAtom a
+drawHead :: Head -> Maybe (Either Token Name) -> IO ()
+drawHead (Hea a) nt = drawAtom a nt
 
-drawBody :: Body -> IO ()
-drawBody (Bod []) = return ()
-drawBody (Bod (g:gs)) = do
+drawBody :: Body -> Maybe (Either Token Name) -> IO ()
+drawBody (Bod []) nt = return ()
+drawBody (Bod (g:gs)) nt = do
     resetAndColor Blue
     putStr ":"
-    drawGoal g
-    drawBody (Bod gs)
+    drawGoal g nt
+    drawBody (Bod gs) nt
 
-drawGoal :: Goal -> IO ()
-drawGoal (AtomGoal a) = drawAtom a
-drawGoal (EqGoal p1 p2) = do 
-    drawPattern p1
+drawGoal :: Goal -> Maybe (Either Token Name) -> IO ()
+drawGoal (AtomGoal a) nt = drawAtom a nt
+drawGoal (EqGoal p1 p2) nt = do 
+    drawPattern p1 nt
     resetAndColor Magenta
     putStr "="
-    drawPattern p2
-drawGoal (ShellGoal p1 p2 p3 p4) = do
+    drawPattern p2 nt
+drawGoal (ShellGoal p1 p2 p3 p4) nt = do
     resetAndColor Yellow
     putStr "$"
-    drawPattern p1; drawPattern p2
+    drawPattern p1 nt; drawPattern p2 nt
     resetAndColor Yellow
     putStr "-"
-    drawPattern p3; drawPattern p4
+    drawPattern p3 nt; drawPattern p4 nt
 
-drawAtom :: Atom -> IO ()
-drawAtom (FailedAtom f) = drawFailure f
-drawAtom (Ato n p1 p2) = do
-    drawName n
-    drawPatterns p1
+drawAtom :: Atom -> Maybe (Either Token Name) -> IO ()
+drawAtom (FailedAtom f) nt = drawFailure f
+drawAtom (Ato n p1 p2) nt = do
+    drawName n nt
+    drawPatterns p1 nt
     resetAndColor Green
     putStr "-"
-    drawPatterns p2
+    drawPatterns p2 nt
         where
-            drawPatterns (p:ps) = do
-                drawPattern p
-                drawPatterns ps
-            drawPatterns _ = return ()
+            drawPatterns (p:ps) nt = do
+                drawPattern p nt
+                drawPatterns ps nt
+            drawPatterns _ nt = return ()
 
-drawName :: Name -> IO ()
-drawName (Nam n) = do
+drawName :: Name -> Maybe (Either Token Name) -> IO ()
+drawName o@(Nam n) nt = do
     resetAndColor Cyan
-    putStr n
+    case nt of
+        (Just (Right nn)) -> if nn == o then drawGreen else drawNormal
+        _ -> drawNormal
+    where
+        drawGreen = do
+            setBGColor Green
+            putStr n
+        drawNormal = do
+            putStr n
+    
 
-drawPattern :: Pattern -> IO ()
-drawPattern (FailedPattern f) = drawFailure f
-drawPattern (Pat ts) = do
+drawPattern :: Pattern -> Maybe (Either Token Name) -> IO ()
+drawPattern (FailedPattern f) nt = drawFailure f
+drawPattern (Pat ts) nt = do
     resetAndColor Magenta
     putStr "("
-    drawTokens ts
+    drawTokens ts nt
     resetAndColor Magenta
     putStr ")"
         where
-            drawTokens (t:ts) = do
-                drawToken t
-                drawTokens ts
-            drawTokens _ = return ()
+            drawTokens (t:ts) nt = do
+                drawToken t nt
+                drawTokens ts nt
+            drawTokens _ nt = return ()
 
-drawToken :: Token -> IO ()
-drawToken (Lit t c) = drawToken' White c "" t
-drawToken (Plus t c) = drawToken' Blue c "+" t
-drawToken (Star t c) = drawToken' Yellow c "*" t
-drawToken Space = drawToken' White Black "" " "
+drawToken :: Token -> Maybe (Either Token Name) -> IO ()
+drawToken t@(Lit s c) nt = drawToken' White nt "" t s
+drawToken t@(Plus s c) nt = drawToken' Blue nt "+" t s
+drawToken t@(Star s c) nt = drawToken' Yellow nt "*" t s
+drawToken Space nt = drawToken' White nt "" Space " "
 
-drawToken' :: Color -> Color -> String -> String -> IO ()
-drawToken' c b p t = do
+drawToken' :: Color -> Maybe (Either Token Name) -> String -> Token -> String -> IO ()
+drawToken' c nt p t s = do
     resetAndColor c
-    setBGColor b
-    putStr (p ++ t)
+    case nt of
+        (Just (Left tt)) -> if tt == t then drawGreen else drawNormal
+        _ -> drawNormal
+    where
+        drawGreen = do
+            setBGColor Green
+            putStr (p ++ s)
+        drawNormal = do
+            putStr (p ++ s)
 
 
 -- Coloring Functions
 
-colorBody :: Body -> Map [Char] Color -> (Body, Map [Char] Color)
-colorBody (Bod gs) m = (Bod cg,cm)
-    where (cg,cm) = colorGoals gs m
+type CursorToElement = Int -> Int -> (Maybe (Either Token Name), Int)
 
-colorGoals :: [Goal] -> Map [Char] Color -> ([Goal], Map [Char] Color)
-colorGoals [] m = ([],m)
-colorGoals (g:gs) m = (cg : (fst rest),snd rest)
-    where
-        (cg,cm) = colorGoal g m
-        rest = colorGoals gs cm
+combineMaybe :: [Maybe a] -> Maybe a
+combineMaybe xs
+    | resultLength == 0 = Nothing
+    | resultLength == 1 = Just (head result)
+    | otherwise = error "Cursor cannot be in multiple positions!"
+        where
+            resultLength = length result
+            result = catMaybes xs
 
-colorGoal :: Goal -> Map [Char] Color -> (Goal, Map [Char] Color)
-colorGoal (AtomGoal g) m = (AtomGoal cg,cm)
-    where (cg,cm) = colorAtom g m
-colorGoal (EqGoal g1 g2) m = (EqGoal cg1 cg2,cm2)
-    where
-        (cg1,cm1) = colorPattern g1 m
-        (cg2,cm2) = colorPattern cg1 cm1
-colorGoal (ShellGoal g1 g2 g3 g4) m = (ShellGoal cg1 cg2 cg3 cg4,cm4)
-    where
-        (cg1,cm1) = colorPattern g1 m
-        (cg2,cm2) = colorPattern g2 cm1
-        (cg3,cm3) = colorPattern g3 cm2
-        (cg4,cm4) = colorPattern g4 cm3
+findInRule :: Rule -> Int -> (Maybe (Either Token Name))
+findInRule (Rul h b) c
+    | isJust (fst resultHead) = fst resultHead
+    | isJust (fst resultBody) = fst resultBody
+    | otherwise = Nothing
+        where
+            resultHead = findInHead h c 0
+            resultBody = findInBody b c (snd resultHead)
 
-colorAtom :: Atom -> Map [Char] Color -> (Atom, Map [Char] Color)
-colorAtom f@(FailedAtom _) m = (f,m)
-colorAtom (Ato s as1 as2) m = (Ato s ca1 ca2,cm2)
-    where
-        (ca1,cm1) = colorPatterns as1 m
-        (ca2,cm2) = colorPatterns as2 cm1
 
-colorPatterns :: [Pattern] -> Map [Char] Color -> ([Pattern], Map [Char] Color)   
-colorPatterns [] m = ([],m)
-colorPatterns (a:as) m = (ca : (fst rest),snd rest)
+findInBody :: Body -> CursorToElement
+findInBody (Bod gs) c m = findInGoals gs c m
+
+findInGoals :: [Goal] -> CursorToElement
+findInGoals [] c m = (Nothing,m)
+findInGoals (g:gs) c m = (combineMaybe [cg, (fst rest)],snd rest)
+    where
+        (cg,cm) = findInGoal g c (m + 1)  -- add ':'
+        rest = findInGoals gs c cm
+
+findInGoal :: Goal -> CursorToElement
+findInGoal (AtomGoal g) c m = findInAtom g c m
+findInGoal (EqGoal g1 g2) c m = (combineMaybe [cg1,cg2],cm2)
+    where
+        (cg1,cm1) = findInPattern g1 c m
+        (cg2,cm2) = findInPattern g2 c (cm1 + 1)  -- add '='
+findInGoal (ShellGoal g1 g2 g3 g4) c m = (combineMaybe [cg1, cg2, cg3, cg4],cm4)
+    where
+        (cg1,cm1) = findInPattern g1 c m
+        (cg2,cm2) = findInPattern g2 c cm1
+        (cg3,cm3) = findInPattern g3 c (cm2 + 1)  -- add '-'
+        (cg4,cm4) = findInPattern g4 c cm3
+
+findInAtom :: Atom -> CursorToElement
+findInAtom (FailedAtom f) c m = (Nothing,length f)
+findInAtom (Ato s as1 as2) c m = (combineMaybe [cs1, ca1, ca2],cm3)
+    where
+        (cs1,cm1) = findInName s c m
+        (ca1,cm2) = findInPatterns as1 c cm1
+        (ca2,cm3) = findInPatterns as2 c (cm2 + 1)  -- add '-'
+
+findInPatterns :: [Pattern] -> CursorToElement
+findInPatterns [] c m = (Nothing,m)
+findInPatterns (a:as) c m = (combineMaybe [ca, (fst rest)],snd rest)
     where 
-        (ca,cm) = colorPattern a m
-        rest = colorPatterns as cm
+        (ca,cm) = findInPattern a c (m + 1)  -- add '('
+        rest = findInPatterns as c (cm + 1)  -- add ')'
 
-colorHead :: Head -> Map [Char] Color -> (Head, Map [Char] Color)
-colorHead (Hea h) m = (Hea ch,cm)
-    where (ch,cm) = colorAtom h m
+findInHead :: Head -> CursorToElement
+findInHead (Hea h) c m = findInAtom h c m
 
-colorPattern :: Pattern -> Map [Char] Color -> (Pattern, Map [Char] Color)
-colorPattern f@(FailedPattern _) m = (f,m)
-colorPattern (Pat ts) m = (Pat ct,cm)
-    where
-        (ct,cm) = colorTokens ts m
+findInPattern :: Pattern -> CursorToElement
+findInPattern (FailedPattern f) c m = (Nothing,length f)
+findInPattern (Pat ts) c m = findInTokens ts c m
     
-colorTokens :: [Token] -> Map [Char] Color -> ([Token], Map [Char] Color)
-colorTokens [] m = ([],m)
-colorTokens (t:ts) m = (ct : (fst rest),snd rest)
+findInTokens :: [Token] -> CursorToElement
+findInTokens [] c m = (Nothing,m)
+findInTokens (t:ts) c m = (combineMaybe [ct, (fst rest)],snd rest)
     where
-        (ct,cm) = colorToken t m
-        rest = colorTokens ts cm
+        (ct,cm) = findInToken t c m
+        rest = findInTokens ts c cm
 
-colorToken :: Token -> Map [Char] Color -> (Token, Map [Char] Color)
-colorToken Space m = (Space,m)
-colorToken (Lit t _) m = _colorToken Lit t m ""
-colorToken (Plus t _) m = _colorToken Plus t m "+"
-colorToken (Star t _) m = _colorToken Star t m "*"
+findInToken :: Token -> CursorToElement
+findInToken Space c m = (Nothing,m + 1)
+findInToken o@(Lit t _) c m = _findIn 0 o t Left c m
+findInToken o@(Plus t _) c m = _findIn 1 o t Left c m
+findInToken o@(Star t _) c m = _findIn 1 o t Left c m
 
-_colorToken :: Ord a1 => ([a1] -> Color -> a2) -> [a1] -> Map [a1] Color -> [a1] -> (a2, Map [a1] Color)
-_colorToken c t m p
-    | Map.member (p ++ t) m = (c t (m ! (p ++ t)),m)
-    | otherwise = (c t (mapToColor m),Map.insert (p ++ t) (mapToColor m) m)
+_findIn :: Int -> a -> String -> (a -> b) -> Int -> Int -> (Maybe b, Int)
+_findIn a o t b c m
+    | (m <= c) && (c < newM) = (Just (b o),newM)
+    | otherwise = (Nothing,newM)
+    where newM = m + a + length t
 
-mapToColor :: Map k a -> Color
-mapToColor m = intToColor (Map.size m)
+findInName :: Name -> CursorToElement
+findInName o@(Nam n) c m = _findIn 0 o n Right c m
