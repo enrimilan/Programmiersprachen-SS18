@@ -4,19 +4,21 @@ import itertools
 import string
 import subprocess
 
-DEBUG = True
+DEBUG = False
 SPECIAL_CHARS = ['\\', ':', '.', '=', '$', '-', '(', ')', '+', '*']
 
-def print_debug(obj):
+
+def print_debug(obj):  # Prints debug messages if DEBUG enabled
     if DEBUG:
         print(str(obj))
 
-def exit_with_error(string):
+
+def exit_with_error(string):  # For something gone wrong, exit
     print(string, file=sys.stderr)
     sys.exit(1)
 
 
-def contains_unescaped(string, character):
+def contains_unescaped(string, character):  # Checks if the is a specific character unescaped in string
     i = 0
     while i < len(string):
         if string[i] == character:
@@ -27,7 +29,7 @@ def contains_unescaped(string, character):
     return False
 
 
-def unescape(string):
+def unescape(string):  # Removes escaping from string
     result = ''
     escaped = False
     for c in string:
@@ -41,22 +43,19 @@ def unescape(string):
     return result
 
 
-def escape(string):
+def escape(string):  # Adds escaping from string
     for char in SPECIAL_CHARS:
-        string = string.replace(char, '\\' + char)
+        string = string.replace(char, '\\' + char)  # Just string replace
     return string
 
 
-def tokenize(string, split_chars, remove_split_chars=True):
-    #special_chars_without_split = [x for x in SPECIAL_CHARS if x not in split_chars]
+def tokenize(string, split_chars, remove_split_chars=True):  # Walks through the string and creates tokens
     result = []
     temp = ''
     escaped = False
     for c in string:
         if c == '\\' and not escaped:
             escaped = True
-        #elif c in special_chars_without_split and not escaped:
-        #    exit_with_error('Found %s unescaped in %s' % (c, string))
         elif c not in SPECIAL_CHARS and escaped:
             exit_with_error('Found normal character %s escaped in %s' % (c, string))
         elif c in SPECIAL_CHARS and escaped:
@@ -76,11 +75,10 @@ def tokenize(string, split_chars, remove_split_chars=True):
     result.append(temp)
     return result
 
-def parse_tokens(string):
+def parse_tokens(string):  # Processes tokens
     tokens = tokenize(string, [' '])
     tokens = list(itertools.chain.from_iterable([tokenize(t, ['+', '*'], remove_split_chars=False) for t in tokens]))
-    #if len(tokens) > 1 and tokens[0] == '':  # TODO is this a good fix?
-    if len(tokens) >= 1 and tokens[0] == '':  # TODO is this a good fix?
+    if len(tokens) >= 1 and tokens[0] == '':
         return tokens[1:]
     return tokens
 
@@ -177,7 +175,7 @@ def parse_rule(string):  # <head> <body> '.'  # '.' checked by parse_program()
 
 def parse_program(string):  # { <rule> }  # Checks '.' too
     print_debug("parse_program " + string)
-    string = string.replace('\n', '').replace('\r', '')  # TODO Remove newlines?
+    string = string.replace('\n', '').replace('\r', '')  # Remove newlines (?)
     if string[-1] != '.':
         exit_with_error('Last . missing of program %s' % string)
     return [parse_rule(rule) for rule in tokenize(string, ['.'])[:-1]]
@@ -226,16 +224,6 @@ def matches(pattern1, pattern2, variables):
     if not is_full_pattern(pattern2, variables):
         return False
     print_debug('Matching ' + str(pattern1) + ' # ' + str(pattern2))
-    #if len(pattern_to_string(pattern2, variables)) == 0 and len(pattern1) >= 2:  # +x*x does not match ''
-    #    return False
-    # TODO +x+y*z does not match 'a '
-    """if len(pattern2) == 0:
-        if len(pattern1) > 0:
-            if get_type(pattern1[0]) == '*':  # Only *z matches []
-                variables[pattern1[0]] = ''
-                return True
-            return False
-        return True"""
     m = pattern_length_without_star(pattern1)
     n = pattern_length_without_star(pattern2)
     new_variables = variables.copy()
@@ -351,7 +339,6 @@ def execute_atom_goal(goal, rule, variables, vg):
     for g1, g2 in zip(head[1], goal[1]):
         if not matches(g1, g2, variables):
             return None
-    #for q, p in zip(head[2], goal[2]):
     for q, p in zip(goal[2], head[2]):
         new_goals.append((q, p))
     new_goals.extend(body)
@@ -373,7 +360,7 @@ def execute_shell_goal(goal, variables):
     process = subprocess.run(command, shell=True, input=stdin, capture_output=True, text=True)
     output = process.stdout if process.stdout != '' else process.stderr
     output = output[:-1] if len(output) > 0 and output[-1] == '\n' else output
-    output = escape(output.replace('\n', ' '))  # TODO check if good solution
+    output = escape(output.replace('\n', ' '))  # Replace newlines with spaces on the input string
     returncode = str(process.returncode)
 
     return [(goal[2], parse_tokens(output)), (goal[3], parse_tokens(returncode))]
