@@ -105,20 +105,26 @@ printEditorMode (State m f p x y l rules) = do
     putStr ("File: " ++ p)
     resetFont
     h <- screenHeight
-    printLines (State m dropped p x y l rules) (min (length dropped) h)
+    printLines (State m dropped p x y l rules) (min (length dropped) h) highlighted (length rules)
         where
             dropped = (drop l f)
+            highlighted = findInRule (fst $ rules !! x) y
 
-printLines :: State -> Int -> IO ()
-printLines (State _ [] _ _ _ _ _) _ = return ()
-printLines (State m (f:fs) p x y l (r:rs)) n 
+printLines :: State -> Int -> Maybe (Either Token Name) -> Int -> IO ()
+printLines (State _ [] _ _ _ _ _) _ _ _ = return ()
+printLines (State m (f:fs) p x y l (r:rs)) n highlighted nrOfRules
     | n<= 0 = return ()
     | otherwise = do
         putStrLn ""
         --putStr f
-        drawRule r y  -- todo wrapped lines
+        drawRule r x y highlightedForThisRule -- todo wrapped lines
         w <- screenWidth
-        printLines (State m fs p x y l rs) (n - 1 - (quot (length f) w))
+        printLines (State m fs p x y l rs) (n - 1 - (quot (length f) w)) highlighted nrOfRules
+            where
+                highlightedForThisRule = 
+                    case highlighted of
+                        Just (Right name ) -> highlighted
+                        _ -> if (nrOfRules - n) == x then highlighted else Nothing
 
 -- Source: https://stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input
 getKey :: IO [Char]
@@ -169,27 +175,19 @@ screenWidth = do
 
 -- Line draw Functions
 
-drawRule :: (Rule, [Char]) -> Int -> IO ()
-drawRule rule cursor = do
+drawRule :: (Rule, [Char]) -> Int -> Int -> Maybe (Either Token Name) -> IO ()
+drawRule rule x y highlighted = do
     case rule of
         (Rul h b, rest) -> do
-            drawHead h nt
-            drawBody b nt
+            drawHead h highlighted
+            drawBody b highlighted
             resetAndColor White
             putStr "."
             drawFailure rest
-            where
-                (nth, p) = (findInHead h cursor 0)
-                ntb = fst (findInBody b cursor p)
-                nt = combineMaybe [nth, ntb]
         (RuleMissingDot h b, rest) -> do
-            drawHead h nt
-            drawBody b nt
+            drawHead h highlighted
+            drawBody b highlighted
             drawFailure rest
-            where
-                (nth, p) = (findInHead h cursor 0)
-                ntb = fst (findInBody b cursor p)
-                nt = combineMaybe [nth, ntb]
         (FailedRule r1, r2) -> do
             drawFailure (r1 ++ r2)
     
@@ -219,10 +217,10 @@ drawGoal (EqGoal p1 p2) nt = do
     putStr "="
     drawPattern p2 nt
 drawGoal (ShellGoal p1 p2 p3 p4) nt = do
-    resetAndColor Yellow
+    resetAndColor Magenta
     putStr "$"
     drawPattern p1 nt; drawPattern p2 nt
-    resetAndColor Yellow
+    resetAndColor Magenta
     putStr "-"
     drawPattern p3 nt; drawPattern p4 nt
 
@@ -231,7 +229,6 @@ drawAtom (FailedAtom f) nt = drawFailure f
 drawAtom (Ato n p1 p2) nt = do
     drawName n nt
     drawPatterns p1 nt
-    resetAndColor Green
     putStr "-"
     drawPatterns p2 nt
         where
@@ -248,7 +245,7 @@ drawName o@(Nam n) nt = do
         _ -> drawNormal
     where
         drawGreen = do
-            setBGColor Green
+            setBGColor Black
             putStr n
         drawNormal = do
             putStr n
@@ -257,10 +254,10 @@ drawName o@(Nam n) nt = do
 drawPattern :: Pattern -> Maybe (Either Token Name) -> IO ()
 drawPattern (FailedPattern f) nt = drawFailure f
 drawPattern (Pat ts) nt = do
-    resetAndColor Magenta
+    resetAndColor Cyan
     putStr "("
     drawTokens ts nt
-    resetAndColor Magenta
+    resetAndColor Cyan
     putStr ")"
         where
             drawTokens (t:ts) nt = do
@@ -271,7 +268,7 @@ drawPattern (Pat ts) nt = do
 drawToken :: Token -> Maybe (Either Token Name) -> IO ()
 drawToken t@(Lit s c) nt = drawToken' White nt "" t s
 drawToken t@(Plus s c) nt = drawToken' Blue nt "+" t s
-drawToken t@(Star s c) nt = drawToken' Yellow nt "*" t s
+drawToken t@(Star s c) nt = drawToken' Magenta nt "*" t s
 drawToken Space nt = drawToken' White nt "" Space " "
 
 drawToken' :: Color -> Maybe (Either Token Name) -> String -> Token -> String -> IO ()
@@ -282,7 +279,7 @@ drawToken' c nt p t s = do
         _ -> drawNormal
     where
         drawGreen = do
-            setBGColor Green
+            setBGColor Black
             putStr (p ++ s)
         drawNormal = do
             putStr (p ++ s)
@@ -309,6 +306,7 @@ findInRule (Rul h b) c
         where
             resultHead = findInHead h c 0
             resultBody = findInBody b c (snd resultHead)
+findInRule _ _ = Nothing
 
 
 findInBody :: Body -> CursorToElement
