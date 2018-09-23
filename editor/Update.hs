@@ -7,6 +7,9 @@ import Parser
 parseProgram :: State -> State
 parseProgram s@(State m f p x y l rules) = State EditMode f p 0 0 l (parseRules f)
 
+
+-- Cursor movement
+
 moveUp :: State -> Int -> State
 moveUp s@(State m f p x y l rules) screenHeight = 
     State EditMode f p newX newY checkUp rules
@@ -42,6 +45,9 @@ moveLeft s@(State m f p x y l rules) screenWidth =
             newX = if x>0 && y == 0 then x - 1 else x
             newY = if y > 0 then y - 1 else if x > 0 then length $ f!!(x-1) else y
 
+
+-- Modifying the code
+
 insertChar :: State -> [Char] -> State
 insertChar s@(State m f p x y l rules) c = State m new p x (y + 1) l newRules
     where
@@ -70,11 +76,8 @@ backspace s@(State m f p x y l rules)
             new = replaceAtIndex x [newLine] f
             newLine = removeAtIndex (y - 1) (f !! x)
 
--- Util Functions
 
-ifBetween x a b y
-    | x >= a && x <= b = x
-    | otherwise = y
+-- Util Functions
 
 replaceAtIndex :: Int -> [a] -> [a] -> [a]
 replaceAtIndex index replacement list
