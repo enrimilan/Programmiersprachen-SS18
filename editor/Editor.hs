@@ -327,10 +327,10 @@ findInGoal (EqGoal g1 g2) c m = (combineMaybe [cg1,cg2],cm2)
         (cg2,cm2) = findInPattern g2 c (cm1 + 1)  -- add '='
 findInGoal (ShellGoal g1 g2 g3 g4) c m = (combineMaybe [cg1, cg2, cg3, cg4],cm4)
     where
-        (cg1,cm1) = findInPattern g1 c m
-        (cg2,cm2) = findInPattern g2 c cm1
-        (cg3,cm3) = findInPattern g3 c (cm2 + 1)  -- add '-'
-        (cg4,cm4) = findInPattern g4 c cm3
+        (cg1,cm1) = findInPattern g1 c (m + 2) -- add  "$("
+        (cg2,cm2) = findInPattern g2 c (cm1 + 2) -- add ")("
+        (cg3,cm3) = findInPattern g3 c (cm2 + 3)  -- add ')-('
+        (cg4,cm4) = findInPattern g4 c (cm3 + 2) -- add ")("
 
 findInAtom :: Atom -> CursorToElement
 findInAtom (FailedAtom f) c m = (Nothing,length f)
